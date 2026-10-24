@@ -68,6 +68,8 @@ def code(text):
 
 
 body = code(body)
+body = re.sub(r"\\begin\{description\}(\[[^\]]*\])?", r"\\begin{itemize}", body).replace("\\end{description}", "\\end{itemize}")
+body = re.sub(r"\\item\[([^\]]*)\]", r"\\item \\textbf{\1}", body)
 body = re.sub(r"\\afaire\{", r"\\emph{À compléter : ", body)
 body = re.sub(r"\\enquote\{([^}]*)\}", r"« \1 »", body)
 body = body.replace("\\appendix", "").replace("$\\neq$", "≠").replace("$\\to$", "→").replace("$\\times$", "×")

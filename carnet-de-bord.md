@@ -246,15 +246,11 @@ Non observé (pas de Docker en local) & Open MPI en conteneur Docker : copie mé
 
 ## Bilan
 
-<div class="description">
+- **Ce qui fonctionne :** build CMake, CTest à 1 et 4 rangs, pipeline validé par le schéma GitLab et exécuté de bout en bout par l’émulateur.
 
-build CMake, CTest à 1 et 4 rangs, pipeline validé par le schéma GitLab et exécuté de bout en bout par l’émulateur.
+- **Ce qui ne fonctionne pas :** le comportement des runners de GitLab.com reste à relever (pas de Docker sur le poste de reproduction).
 
-le comportement des runners de GitLab.com reste à relever (pas de Docker sur le poste de reproduction).
-
-écrire d’abord un test qui échoue avant de lui faire confiance ; c’est ce qui a révélé le piège de `NDEBUG`.
-
-</div>
+- **À refaire autrement :** écrire d’abord un test qui échoue avant de lui faire confiance ; c’est ce qui a révélé le piège de `NDEBUG`.
 
 # Mission 2 : déclencheurs, règles et secrets
 
@@ -396,15 +392,11 @@ Masquage invisible en local & l’émulateur n’implémente pas le masquage & v
 
 ## Bilan
 
-<div class="description">
+- **Ce qui fonctionne :** règles validées pour six types de pipelines, lint qui échoue sur une vraie erreur, archive vérifiable (contenu, `BUILDINFO`, SHA-256), secret transmis par l’entrée standard.
 
-règles validées pour six types de pipelines, lint qui échoue sur une vraie erreur, archive vérifiable (contenu, `BUILDINFO`, SHA-256), secret transmis par l’entrée standard.
+- **Ce qui ne fonctionne pas :** masquage et protection non observables hors de GitLab.com ; le binaire de l’archive dépend de l’Open MPI de Debian et n’est pas autonome.
 
-masquage et protection non observables hors de GitLab.com ; le binaire de l’archive dépend de l’Open MPI de Debian et n’est pas autonome.
-
-poser `workflow:rules` dès le premier job conditionnel, et produire les archives de version à partir de l’environnement Spack plutôt que d’une image Debian.
-
-</div>
+- **À refaire autrement :** poser `workflow:rules` dès le premier job conditionnel, et produire les archives de version à partir de l’environnement Spack plutôt que d’une image Debian.
 
 # Mission 3 : du CI vers Slurm
 
@@ -782,15 +774,11 @@ Jobs `tags: [hpc-login]` en attente sans fin sur GitLab.com (anticipé) & aucun 
 
 ## Bilan
 
-<div class="description">
+- **Ce qui fonctionne :** soumission, suivi, verdict classé (0, 1 ou 75) et annulation des jobs orphelins, testés sur un vrai Slurm avec comptabilité, file saturée et panne de nœud.
 
-soumission, suivi, verdict classé (0, 1 ou 75) et annulation des jobs orphelins, testés sur un vrai Slurm avec comptabilité, file saturée et panne de nœud.
+- **Ce qui ne fonctionne pas :** pas encore d’exécution sur des nœuds réellement distincts ; le transport mémoire partagée n’a pas pu être testé en conditions réelles.
 
-pas encore d’exécution sur des nœuds réellement distincts ; le transport mémoire partagée n’a pas pu être testé en conditions réelles.
-
-tester les cas d’échec (plantage, file pleine, panne) avant le cas nominal : chacun a révélé un défaut du script.
-
-</div>
+- **À refaire autrement :** tester les cas d’échec (plantage, file pleine, panne) avant le cas nominal : chacun a révélé un défaut du script.
 
 # Mission 4 : Spack, l’environnement comme code
 
@@ -952,15 +940,11 @@ Cible `icelake` détectée & concrétisation pour le processeur de la machine & 
 
 ## Bilan
 
-<div class="description">
+- **Ce qui fonctionne :** environnement concrétisé (49 specs) avec une cible portable et Slurm externe ; `spack.yaml` et `spack.lock` commités ; spec de HDF5 vérifiée.
 
-environnement concrétisé (49 specs) avec une cible portable et Slurm externe ; `spack.yaml` et `spack.lock` commités ; spec de HDF5 vérifiée.
+- **Ce qui ne fonctionne pas :** installation, et build du test avec l’OpenMPI de Spack, pas encore faits (sur GCP).
 
-installation, et build du test avec l’OpenMPI de Spack, pas encore faits (sur GCP).
-
-concrétiser directement sur le nœud de connexion, et mettre en place le buildcache avant d’appeler `spack install` depuis le CI.
-
-</div>
+- **À refaire autrement :** concrétiser directement sur le nœud de connexion, et mettre en place le buildcache avant d’appeler `spack install` depuis le CI.
 
 # Conclusion et auto-diagnostic
 
