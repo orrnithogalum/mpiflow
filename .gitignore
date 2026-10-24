@@ -16,3 +16,4 @@ sacct-*.txt
 *.fdb_latexmk
 *.fls
 *.synctex.gz
+__pycache__/
