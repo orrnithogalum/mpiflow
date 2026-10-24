@@ -1,0 +1,26 @@
+$ gitlab-ci-local --force-shell-executor --shell-isolation --variable CI_COMMIT_TAG=v0.1.0 build test package
+package $ mkdir -p "dist/$PKG/bin"
+package $ cp build/tests/test_mpi "dist/$PKG/bin/"
+package $ cp README.md "dist/$PKG/"
+package $ printf 'projet=%s\ntag=%s\ncommit=%s\npipeline=%s\ndate=%s\n' "$CI_PROJECT_PATH" "$CI_COMMIT_TAG" "$CI_COMMIT_SHA" "$CI_PIPELINE_URL" "$(date -u +%FT%TZ)" > "dist/$PKG/BUILDINFO.txt"
+package $ tar -C dist -czf "dist/$PKG.tar.gz" "$PKG"
+package $ cd dist && sha256sum "$PKG.tar.gz" | tee checksums.txt
+package > 9ed16eb3059d01e2e572a22c96e11b27ae19f81683a9e962f71715b58063c5a3  mpiflow-v0.1.0-linux-x86_64.tar.gz
+package finished in 336 ms
+ PASS  build  
+ PASS  test   
+ PASS  package
+$ tar tzf dist/mpiflow-v0.1.0-linux-x86_64.tar.gz
+mpiflow-v0.1.0-linux-x86_64/
+mpiflow-v0.1.0-linux-x86_64/README.md
+mpiflow-v0.1.0-linux-x86_64/BUILDINFO.txt
+mpiflow-v0.1.0-linux-x86_64/bin/
+mpiflow-v0.1.0-linux-x86_64/bin/test_mpi
+$ tar xzf dist/mpiflow-v0.1.0-linux-x86_64.tar.gz -O mpiflow-v0.1.0-linux-x86_64/BUILDINFO.txt
+projet=chps/mpiflow
+tag=v0.1.0
+commit=def6b052a2214d2edf4827d7128ae1b3c43e3995
+pipeline=https://gitlab.com/chps/mpiflow/pipelines/0
+date=2026-10-24T14:04:15Z
+$ cd dist && sha256sum -c checksums.txt
+mpiflow-v0.1.0-linux-x86_64.tar.gz: OK

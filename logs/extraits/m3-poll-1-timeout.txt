@@ -1,0 +1,31 @@
+$ runuser -l etudiant -c 'cd mpiflow && POLL_INTERVAL=5 ./slurm/submit_and_poll.sh slurm/job_ci.sh'
+Job Slurm 1 soumis (2026-10-24T13:45:36+00:00)
+[13:45:36] +    0s  job 1  PENDING    raison=None
+   début estimé par Slurm : N/A
+[13:45:41] +    5s  job 1  RUNNING    raison=None
+[13:45:46] +   10s  job 1  RUNNING    raison=None
+[... 57 lignes RUNNING identiques, une toutes les 5 s ...]
+[13:50:44] +  308s  job 1  RUNNING    raison=None
+---- sacct ----
+JobID               JobName      State ExitCode    Elapsed   NNodes         NodeList 
+------------ -------------- ---------- -------- ---------- -------- ---------------- 
+1                ci-mpiflow    TIMEOUT      0:0   00:05:13        2        node[1-2] 
+1.batch               batch  CANCELLED     0:15   00:05:13        1            node1 
+1.0                test_mpi  CANCELLED     0:15   00:05:12        2        node[1-2] 
+---- sortie du job ----
+== Job 1 : 2 nœud(s) [node[1-2]], 4 tâches
+== Soumis depuis /home/etudiant/mpiflow (commit hors CI)
+== Environnement : système (PATH par défaut)
+== mpicc : /usr/bin/mpicc
+[vm:04044] *** Process received signal ***
+[vm:04044] Signal: Segmentation fault (11)
+[vm:04044] [ 1] /usr/lib/x86_64-linux-gnu/openmpi/lib/openmpi3/mca_btl_vader.so(mca_btl_vader_poll_handle_frag+0x14c)[0x7f3bd01f4dac]
+[... trace complète dans logs/m3-poll-1-timeout.txt ...]
+srun: error: node1: tasks 0-1: Segmentation fault
+srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+slurmstepd-node1: error: *** JOB 1 ON node1 CANCELLED AT 2026-10-24T13:50:49 DUE TO TIME LIMIT ***
+srun: got SIGCONT
+srun: forcing job termination
+srun: error: node2: tasks 2-3: Terminated
+Verdict : échec du JOB (TIMEOUT, ExitCode=0:0)
+[code retour : 1]

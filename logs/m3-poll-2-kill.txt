@@ -1,0 +1,61 @@
+$ runuser -l etudiant -c 'cd mpiflow && POLL_INTERVAL=5 ./slurm/submit_and_poll.sh slurm/job_ci.sh'
+Job Slurm 2 soumis (2026-10-24T13:51:01+00:00)
+[13:51:01] +    0s  job 2  PENDING    raison=None
+   début estimé par Slurm : N/A
+[13:51:06] +    5s  job 2  FAILED     
+---- sacct ----
+JobID               JobName      State ExitCode    Elapsed   NNodes         NodeList 
+------------ -------------- ---------- -------- ---------- -------- ---------------- 
+2                ci-mpiflow     FAILED     15:0   00:00:01        2        node[1-2] 
+2.batch               batch     FAILED     15:0   00:00:01        1            node1 
+2.0                test_mpi  CANCELLED     0:15   00:00:00        2        node[1-2] 
+---- sortie du job ----
+== Job 2 : 2 nœud(s) [node[1-2]], 4 tâches
+== Soumis depuis /home/etudiant/mpiflow (commit hors CI)
+== Environnement : système (PATH par défaut)
+== mpicc : /usr/bin/mpicc
+[vm:05032] *** Process received signal ***
+[vm:05032] Signal: Segmentation fault (11)
+[vm:05032] Signal code: Address not mapped (1)
+[vm:05032] Failing at address: 0x555b3bd848e0
+[vm:05032] [ 0] /lib/x86_64-linux-gnu/libc.so.6(+0x45330)[0x7f0ae9445330]
+[vm:05032] [ 1] /usr/lib/x86_64-linux-gnu/openmpi/lib/openmpi3/mca_btl_vader.so(mca_btl_vader_poll_handle_frag+0x14c)[0x7f0ae8418dac]
+[vm:05032] [ 2] /usr/lib/x86_64-linux-gnu/openmpi/lib/openmpi3/mca_btl_vader.so(+0x8044)[0x7f0ae8419044]
+[vm:05032] [ 3] /lib/x86_64-linux-gnu/libopen-pal.so.40(opal_progress+0x34)[0x7f0ae93763b4]
+[vm:05032] [ 4] /lib/x86_64-linux-gnu/libmpi.so.40(ompi_request_default_wait+0x55)[0x7f0ae9785945]
+[vm:05032] [ 5] /lib/x86_64-linux-gnu/libmpi.so.40(ompi_coll_base_bcast_intra_generic+0x620)[0x7f0ae97dc9a0]
+[vm:05032] [ 6] /lib/x86_64-linux-gnu/libmpi.so.40(ompi_coll_base_bcast_intra_bintree+0xbc)[0x7f0ae97dd32c]
+[vm:05032] [ 7] /usr/lib/x86_64-linux-gnu/openmpi/lib/openmpi3/mca_coll_tuned.so(ompi_coll_tuned_bcast_intra_dec_fixed+0x40)[0x7f0ae8013670]
+[vm:05032] [ 8] /lib/x86_64-linux-gnu/libmpi.so.40(MPI_Bcast+0x120)[0x7f0ae979c910]
+[vm:05032] [ 9] build-hpc/tests/test_mpi(+0x12d5)[0x5620032362d5]
+[vm:05032] [10] /lib/x86_64-linux-gnu/libc.so.6(+0x2a1ca)[0x7f0ae942a1ca]
+[vm:05032] [11] /lib/x86_64-linux-gnu/libc.so.6(__libc_start_main+0x8b)[0x7f0ae942a28b]
+[vm:05032] [12] build-hpc/tests/test_mpi(+0x1655)[0x562003236655]
+[vm:05032] *** End of error message ***
+[vm:05031] *** Process received signal ***
+[vm:05031] Signal: Segmentation fault (11)
+[vm:05031] Signal code: Address not mapped (1)
+[vm:05031] Failing at address: 0x555b3bd848e0
+[vm:05031] [ 0] /lib/x86_64-linux-gnu/libc.so.6(+0x45330)[0x7f9d1d645330]
+[vm:05031] [ 1] /usr/lib/x86_64-linux-gnu/openmpi/lib/openmpi3/mca_btl_vader.so(mca_btl_vader_poll_handle_frag+0x14c)[0x7f9d1c1cadac]
+[vm:05031] [ 2] /usr/lib/x86_64-linux-gnu/openmpi/lib/openmpi3/mca_btl_vader.so(+0x7fd8)[0x7f9d1c1cafd8]
+[vm:05031] [ 3] /lib/x86_64-linux-gnu/libopen-pal.so.40(opal_progress+0x34)[0x7f9d1d4ba3b4]
+[vm:05031] [ 4] /lib/x86_64-linux-gnu/libmpi.so.40(ompi_request_default_wait+0x55)[0x7f9d1d8cb945]
+[vm:05031] [ 5] /lib/x86_64-linux-gnu/libmpi.so.40(ompi_coll_base_sendrecv_actual+0xb0)[0x7f9d1d923f00]
+[vm:05031] [ 6] /lib/x86_64-linux-gnu/libmpi.so.40(ompi_coll_base_allreduce_intra_recursivedoubling+0x2d9)[0x7f9d1d928b69]
+[vm:05031] [ 7] /lib/x86_64-linux-gnu/libmpi.so.40(ompi_coll_base_allreduce_intra_ring+0x9bd)[0x7f9d1d92c07d]
+[vm:05031] [ 8] /usr/lib/x86_64-linux-gnu/openmpi/lib/openmpi3/mca_coll_tuned.so(ompi_coll_tuned_allreduce_intra_dec_fixed+0x4e)[0x7f9d177db27e]
+[vm:05031] [ 9] /lib/x86_64-linux-gnu/libmpi.so.40(PMPI_Allreduce+0x10f)[0x7f9d1d8e164f]
+[vm:05031] [10] build-hpc/tests/test_mpi(+0x133f)[0x56496795933f]
+[vm:05031] [11] /lib/x86_64-linux-gnu/libc.so.6(+0x2a1ca)[0x7f9d1d62a1ca]
+[vm:05031] [12] /lib/x86_64-linux-gnu/libc.so.6(__libc_start_main+0x8b)[0x7f9d1d62a28b]
+[vm:05031] [13] build-hpc/tests/test_mpi(+0x1655)[0x564967959655]
+[vm:05031] *** End of error message ***
+srun: error: node2: tasks 2-3: Segmentation fault
+srun: Terminating StepId=2.0
+slurmstepd-node1: error: *** STEP 2.0 ON node1 CANCELLED AT 2026-10-24T13:51:02 ***
+srun: error: node1: tasks 0-1: Terminated
+srun: Force Terminated StepId=2.0
+FAILED: srun a renvoyé 143
+Verdict : échec du JOB (FAILED, ExitCode=15:0)
+[code retour : 1]

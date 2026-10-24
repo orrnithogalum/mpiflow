@@ -1,0 +1,25 @@
+# spack.lock (extrait mis en forme ; hash abrégés à 7 caractères) -- 49 specs
+"_meta": {"file-type": "spack-lockfile", "lockfile-version": 6, "specfile-version": 5},
+"roots": [
+  {"hash": "iftmwb3...", "spec": "openmpi@5 schedulers=slurm %gcc"},
+  {"hash": "nxsxsy2...", "spec": "cmake %gcc"},
+],
+"concrete_specs": {
+ "iftmwb3...": {
+  "name": "openmpi",
+  "version": "5.0.10",
+  "arch": {"platform": "linux", "platform_os": "ubuntu24.04", "target": "x86_64_v3"},
+  "namespace": "builtin",
+  "parameters": {"fabrics": ["none"], "fortran": true, "internal-pmix": false, "schedulers": ["slurm"]}, ...
+  "dependencies": [
+   {"name": "gcc", "hash": "zpevy7h...", "deptypes": ["build"]},
+   {"name": "hwloc", "hash": "3hmup55...", "deptypes": ["build", "link"]},
+   {"name": "libevent", "hash": "j4kmbgk...", "deptypes": ["build", "link"]},
+   {"name": "pmix", "hash": "2af34qh...", "deptypes": ["build", "link"]},
+   {"name": "prrte", "hash": "s5tkl45...", "deptypes": ["build", "link"]},
+   {"name": "slurm", "hash": "qjjvtor...", "deptypes": ["build", "link"]},
+   ... (18 dépendances au total)
+  ]
+ },
+ "qjjvtor...": {"name": "slurm", "version": "23.11.4", "external": {"path": "/usr"}, ...}
+}

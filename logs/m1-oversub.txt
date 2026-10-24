@@ -1,0 +1,5 @@
+$ mpirun --allow-run-as-root -np 4 build/tests/test_mpi 2>&1 | head -3
+--------------------------------------------------------------------------
+There are not enough slots available in the system to satisfy the 4
+slots that were requested by the application:
+[code retour : 1]

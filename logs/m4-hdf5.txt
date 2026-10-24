@@ -1,0 +1,6 @@
+$ spack spec hdf5+mpi+fortran~cxx %gcc@13.3.0   # (extrait)
+ -   hdf5@1.14.6~cxx+fortran~hl~ipo~java~map+mpi+shared~subfiling~szip~threadsafe+tools api=default build_type=R
+[e]      ^gcc@13.3.0+binutils+bootstrap~graphite+libsanitizer~mold~nvptx~piclibs~profiled~strip build_type=RelWi
+ -       ^openmpi@5.0.10+atomics~cuda~debug+fortran~gpfs~internal-hwloc~internal-libevent~internal-pmix~ipv6~jav
+$ spack arch
+linux-ubuntu24.04-icelake

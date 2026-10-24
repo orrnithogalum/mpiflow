@@ -1,0 +1,121 @@
+$ runuser -l etudiant -c 'cd mpiflow && POLL_INTERVAL=5 ./slurm/submit_and_poll.sh slurm/job_ci.sh'
+Job Slurm 1 soumis (2026-10-24T13:45:36+00:00)
+[13:45:36] +    0s  job 1  PENDING    raison=None
+   début estimé par Slurm : N/A
+[13:45:41] +    5s  job 1  RUNNING    raison=None
+[13:45:46] +   10s  job 1  RUNNING    raison=None
+[13:45:52] +   16s  job 1  RUNNING    raison=None
+[13:45:57] +   21s  job 1  RUNNING    raison=None
+[13:46:02] +   26s  job 1  RUNNING    raison=None
+[13:46:07] +   31s  job 1  RUNNING    raison=None
+[13:46:12] +   36s  job 1  RUNNING    raison=None
+[13:46:17] +   41s  job 1  RUNNING    raison=None
+[13:46:22] +   46s  job 1  RUNNING    raison=None
+[13:46:27] +   51s  job 1  RUNNING    raison=None
+[13:46:32] +   56s  job 1  RUNNING    raison=None
+[13:46:38] +   62s  job 1  RUNNING    raison=None
+[13:46:43] +   67s  job 1  RUNNING    raison=None
+[13:46:48] +   72s  job 1  RUNNING    raison=None
+[13:46:53] +   77s  job 1  RUNNING    raison=None
+[13:46:58] +   82s  job 1  RUNNING    raison=None
+[13:47:03] +   87s  job 1  RUNNING    raison=None
+[13:47:08] +   92s  job 1  RUNNING    raison=None
+[13:47:13] +   97s  job 1  RUNNING    raison=None
+[13:47:19] +  103s  job 1  RUNNING    raison=None
+[13:47:24] +  108s  job 1  RUNNING    raison=None
+[13:47:29] +  113s  job 1  RUNNING    raison=None
+[13:47:34] +  118s  job 1  RUNNING    raison=None
+[13:47:39] +  123s  job 1  RUNNING    raison=None
+[13:47:44] +  128s  job 1  RUNNING    raison=None
+[13:47:49] +  133s  job 1  RUNNING    raison=None
+[13:47:54] +  138s  job 1  RUNNING    raison=None
+[13:48:00] +  144s  job 1  RUNNING    raison=None
+[13:48:05] +  149s  job 1  RUNNING    raison=None
+[13:48:10] +  154s  job 1  RUNNING    raison=None
+[13:48:15] +  159s  job 1  RUNNING    raison=None
+[13:48:20] +  164s  job 1  RUNNING    raison=None
+[13:48:25] +  169s  job 1  RUNNING    raison=None
+[13:48:30] +  174s  job 1  RUNNING    raison=None
+[13:48:35] +  179s  job 1  RUNNING    raison=None
+[13:48:41] +  185s  job 1  RUNNING    raison=None
+[13:48:46] +  190s  job 1  RUNNING    raison=None
+[13:48:51] +  195s  job 1  RUNNING    raison=None
+[13:48:56] +  200s  job 1  RUNNING    raison=None
+[13:49:01] +  205s  job 1  RUNNING    raison=None
+[13:49:06] +  210s  job 1  RUNNING    raison=None
+[13:49:11] +  215s  job 1  RUNNING    raison=None
+[13:49:16] +  220s  job 1  RUNNING    raison=None
+[13:49:22] +  226s  job 1  RUNNING    raison=None
+[13:49:27] +  231s  job 1  RUNNING    raison=None
+[13:49:32] +  236s  job 1  RUNNING    raison=None
+[13:49:37] +  241s  job 1  RUNNING    raison=None
+[13:49:42] +  246s  job 1  RUNNING    raison=None
+[13:49:47] +  251s  job 1  RUNNING    raison=None
+[13:49:52] +  256s  job 1  RUNNING    raison=None
+[13:49:57] +  261s  job 1  RUNNING    raison=None
+[13:50:03] +  267s  job 1  RUNNING    raison=None
+[13:50:08] +  272s  job 1  RUNNING    raison=None
+[13:50:13] +  277s  job 1  RUNNING    raison=None
+[13:50:18] +  282s  job 1  RUNNING    raison=None
+[13:50:23] +  287s  job 1  RUNNING    raison=None
+[13:50:28] +  292s  job 1  RUNNING    raison=None
+[13:50:33] +  297s  job 1  RUNNING    raison=None
+[13:50:38] +  302s  job 1  RUNNING    raison=None
+[13:50:44] +  308s  job 1  RUNNING    raison=None
+[13:50:49] +  313s  job 1  TIMEOUT    
+---- sacct ----
+JobID               JobName      State ExitCode    Elapsed   NNodes         NodeList 
+------------ -------------- ---------- -------- ---------- -------- ---------------- 
+1                ci-mpiflow    TIMEOUT      0:0   00:05:13        2        node[1-2] 
+1.batch               batch  CANCELLED     0:15   00:05:13        1            node1 
+1.0                test_mpi  CANCELLED     0:15   00:05:12        2        node[1-2] 
+---- sortie du job ----
+== Job 1 : 2 nœud(s) [node[1-2]], 4 tâches
+== Soumis depuis /home/etudiant/mpiflow (commit hors CI)
+== Environnement : système (PATH par défaut)
+== mpicc : /usr/bin/mpicc
+[vm:04044] *** Process received signal ***
+[vm:04044] Signal: Segmentation fault (11)
+[vm:04044] Signal code: Address not mapped (1)
+[vm:04044] Failing at address: 0x56316d495860
+[vm:04044] [ 0] /lib/x86_64-linux-gnu/libc.so.6(+0x45330)[0x7f3bd1645330]
+[vm:04044] [ 1] /usr/lib/x86_64-linux-gnu/openmpi/lib/openmpi3/mca_btl_vader.so(mca_btl_vader_poll_handle_frag+0x14c)[0x7f3bd01f4dac]
+[vm:04044] [ 2] /usr/lib/x86_64-linux-gnu/openmpi/lib/openmpi3/mca_btl_vader.so(+0x8044)[0x7f3bd01f5044]
+[vm:04044] [ 3] /lib/x86_64-linux-gnu/libopen-pal.so.40(opal_progress+0x34)[0x7f3bd14ba3b4]
+[vm:04044] [ 4] /lib/x86_64-linux-gnu/libmpi.so.40(ompi_request_default_wait+0x55)[0x7f3bd18fa945]
+[vm:04044] [ 5] /lib/x86_64-linux-gnu/libmpi.so.40(ompi_coll_base_sendrecv_actual+0xb0)[0x7f3bd1952f00]
+[vm:04044] [ 6] /lib/x86_64-linux-gnu/libmpi.so.40(ompi_coll_base_allreduce_intra_recursivedoubling+0x2d9)[0x7f3bd1957b69]
+[vm:04044] [ 7] /lib/x86_64-linux-gnu/libmpi.so.40(ompi_coll_base_allreduce_intra_ring+0x9bd)[0x7f3bd195b07d]
+[vm:04044] [ 8] /usr/lib/x86_64-linux-gnu/openmpi/lib/openmpi3/mca_coll_tuned.so(ompi_coll_tuned_allreduce_intra_dec_fixed+0x4e)[0x7f3bcb7f327e]
+[vm:04044] [ 9] /lib/x86_64-linux-gnu/libmpi.so.40(PMPI_Allreduce+0x10f)[0x7f3bd191064f]
+[vm:04044] [10] build-hpc/tests/test_mpi(+0x133f)[0x55d3b4c6133f]
+[vm:04044] [11] /lib/x86_64-linux-gnu/libc.so.6(+0x2a1ca)[0x7f3bd162a1ca]
+[vm:04044] [12] /lib/x86_64-linux-gnu/libc.so.6(__libc_start_main+0x8b)[0x7f3bd162a28b]
+[vm:04044] [13] build-hpc/tests/test_mpi(+0x1655)[0x55d3b4c61655]
+[vm:04044] *** End of error message ***
+[vm:04045] *** Process received signal ***
+[vm:04045] Signal: Segmentation fault (11)
+[vm:04045] Signal code: Address not mapped (1)
+[vm:04045] Failing at address: 0x56316d495960
+[vm:04045] [ 0] /lib/x86_64-linux-gnu/libc.so.6(+0x45330)[0x7f6dbfa45330]
+[vm:04045] [ 1] /usr/lib/x86_64-linux-gnu/openmpi/lib/openmpi3/mca_btl_vader.so(mca_btl_vader_poll_handle_frag+0x14c)[0x7f6dbdfaedac]
+[vm:04045] [ 2] /usr/lib/x86_64-linux-gnu/openmpi/lib/openmpi3/mca_btl_vader.so(+0x8044)[0x7f6dbdfaf044]
+[vm:04045] [ 3] /lib/x86_64-linux-gnu/libopen-pal.so.40(opal_progress+0x34)[0x7f6dbf9763b4]
+[vm:04045] [ 4] /lib/x86_64-linux-gnu/libmpi.so.40(ompi_request_default_wait+0x55)[0x7f6dbfd7f945]
+[vm:04045] [ 5] /lib/x86_64-linux-gnu/libmpi.so.40(ompi_coll_base_bcast_intra_generic+0x68a)[0x7f6dbfdd6a0a]
+[vm:04045] [ 6] /lib/x86_64-linux-gnu/libmpi.so.40(ompi_coll_base_bcast_intra_bintree+0xbc)[0x7f6dbfdd732c]
+[vm:04045] [ 7] /usr/lib/x86_64-linux-gnu/openmpi/lib/openmpi3/mca_coll_tuned.so(ompi_coll_tuned_bcast_intra_dec_fixed+0x40)[0x7f6dbc029670]
+[vm:04045] [ 8] /lib/x86_64-linux-gnu/libmpi.so.40(MPI_Bcast+0x120)[0x7f6dbfd96910]
+[vm:04045] [ 9] build-hpc/tests/test_mpi(+0x12d5)[0x55954e3f92d5]
+[vm:04045] [10] /lib/x86_64-linux-gnu/libc.so.6(+0x2a1ca)[0x7f6dbfa2a1ca]
+[vm:04045] [11] /lib/x86_64-linux-gnu/libc.so.6(__libc_start_main+0x8b)[0x7f6dbfa2a28b]
+[vm:04045] [12] build-hpc/tests/test_mpi(+0x1655)[0x55954e3f9655]
+[vm:04045] *** End of error message ***
+srun: error: node1: tasks 0-1: Segmentation fault
+srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+slurmstepd-node1: error: *** JOB 1 ON node1 CANCELLED AT 2026-10-24T13:50:49 DUE TO TIME LIMIT ***
+srun: got SIGCONT
+srun: forcing job termination
+srun: error: node2: tasks 2-3: Terminated
+Verdict : échec du JOB (TIMEOUT, ExitCode=0:0)
+[code retour : 1]

@@ -1,0 +1,24 @@
+$ spack -e . concretize --force   # (sortie tronquée à 105 colonnes)
+==> Concretized 2 specs:
+ -   nxsxsy2  cmake@3.31.11~doc+ncurses+ownlibs~qtgui build_type=Release target=x86_64_v3 %c,cxx=gcc@13.3
+ -   5ras4ko      ^compiler-wrapper@1.1.0 target=x86_64_v3
+ -   i6kir7u      ^curl@8.20.0~gssapi~ldap~libidn2~librtmp~libssh~libssh2+nghttp2 libs:=shared,static tls
+ -   6diukzt          ^nghttp2@1.67.1 target=x86_64_v3 %c,cxx=gcc@13.3.0
+ -   ehec7mr              ^diffutils@3.12 target=x86_64_v3 %c=gcc@13.3.0
+ -   x4rtydo          ^openssl@3.6.1~docs+shared certs=mozilla target=x86_64_v3 %c,cxx=gcc@13.3.0
+ -   sghkyxj              ^ca-certificates-mozilla@2026-03-19 target=x86_64_v3
+[e]  zpevy7h      ^gcc@13.3.0+binutils+bootstrap~graphite+libsanitizer~mold~nvptx~piclibs~profiled~strip 
+ -   52xg2sk      ^gcc-runtime@13.3.0 target=x86_64_v3
+[e]  thy5vqo      ^glibc@2.39 target=x86_64
+ -   xbjzygf      ^gmake@4.4.1~guile target=x86_64_v3 %c=gcc@13.3.0
+ -   h5ybcvi      ^ncurses@6.6~symlinks+termlib abi=none patches:=7a351bc target=x86_64_v3 %c,cxx=gcc@13.
+ -   i5w6x4r      ^zlib-ng@2.3.3+compat+new_strategies+opt+pic+shared target=x86_64_v3 %c,cxx=gcc@13.3.0
+ -   iftmwb3  openmpi@5.0.10+atomics~cuda~debug+fortran~gpfs~internal-hwloc~internal-libevent~internal-pm
+ -   65abp53      ^autoconf@2.72 target=x86_64_v3
+ -   3a2efb4          ^m4@1.4.21+sigsegv target=x86_64_v3 %c,cxx=gcc@13.3.0
+ -   gbdry5i              ^libsigsegv@2.15 target=x86_64_v3 %c=gcc@13.3.0
+ -   dpjsh7q      ^automake@1.18.1 target=x86_64_v3 %c=gcc@13.3.0
+ -   3hmup55      ^hwloc@2.13.0~cairo~cuda~gl~level_zero~libudev+libxml2~nvml~opencl+pci~rocm libs:=share
+ -   jkx3xle          ^libpciaccess@0.17 target=x86_64_v3 %c=gcc@13.3.0
+ -   47ljylz              ^util-macros@1.20.2 target=x86_64_v3
+[... 49 specs au total : 46 à construire (-), 3 externes ([e])]

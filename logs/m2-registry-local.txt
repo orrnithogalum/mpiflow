@@ -1,0 +1,16 @@
+$ gitlab-ci-local --force-shell-executor registry_login            # variable absente
+registry_login $ echo "ref=$CI_COMMIT_REF_NAME protégée=$CI_COMMIT_REF_PROTECTED"
+registry_login > ref=feature/lint protégée=false
+registry_login $ if [ -z "${FAKE_REGISTRY_TOKEN:-}" ]; then # collapsed multi-line command
+registry_login > FAKE_REGISTRY_TOKEN vide : variable Protected sur une ref non protégée.
+ PASS  registry_login
+
+$ gitlab-ci-local --force-shell-executor --variable FAKE_REGISTRY_TOKEN=FAUX-jeton-ci-0123456789 registry_login
+registry_login $ echo "ref=$CI_COMMIT_REF_NAME protégée=$CI_COMMIT_REF_PROTECTED"
+registry_login > ref=feature/lint protégée=false
+registry_login $ if [ -z "${FAKE_REGISTRY_TOKEN:-}" ]; then # collapsed multi-line command
+registry_login $ echo "Test du masquage -> $FAKE_REGISTRY_TOKEN"
+registry_login > Test du masquage -> FAUX-jeton-ci-0123456789
+registry_login $ echo "$FAKE_REGISTRY_TOKEN" | ./scripts/fake_docker_login.sh -u ci-user --password-stdin registry.example.org
+registry_login > Login Succeeded (simulation) : ci-user@registry.example.org, secret de 24 caractères reçu via stdin
+ PASS  registry_login

@@ -1,0 +1,8 @@
+$ runuser -l etudiant -c 'cd mpiflow && POLL_INTERVAL=3 ./slurm/submit_and_poll.sh slurm/job_ci.sh --nodes=1 --ntasks=2 --ntasks-per-node=2' | tail -6
+== mpicc : /usr/bin/mpicc
+  rang 0 sur vm
+  rang 1 sur vm
+MPI test passed with 2 ranks on 1 host(s)
+SUCCESS: MPI test passed (2 rangs sur 1 nœuds)
+Verdict : succès
+[code retour : 0]

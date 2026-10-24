@@ -1,0 +1,29 @@
+# Base de comptabilité arrêtée pendant le suivi (MariaDB, donc slurmdbd, indisponible) :
+$ sacct -j 21 -X -o JobID,State,ExitCode
+sacct: error: slurm_persist_conn_open_without_init: failed to open persistent connection to host:vm:6819: Connection refused
+sacct: error: Sending PersistInit msg: Connection refused
+sacct: error: Problem talking to the database: Connection refused
+# Première version du script : sans état connu, la boucle ne s arrête jamais
+$ POLL_INTERVAL=10 ./slurm/submit_and_poll.sh slurm/job_ci.sh --partition=debug --nodes=2 --ntasks=4 --ntasks-per-node=2
+Job Slurm 21 soumis (2026-10-24T18:52:20+00:00)
+[18:52:20] +    0s  job 21  PENDING    raison=None
+[18:52:30] +   10s  job 21  INCONNU    
+[18:52:40] +   20s  job 21  INCONNU    
+[...]
+[19:03:21] +  661s  job 21  INCONNU
+# (interrompu à la main après 11 minutes)
+# Script corrigé (repli sur scontrol), base toujours arrêtée :
+$ runuser -l etudiant -c 'cd mpiflow && export OMPI_MCA_btl=self,tcp && POLL_INTERVAL=3 SACCT_SETTLE=1 ./slurm/submit_and_poll.sh slurm/job_ci.sh' | grep -vE '^  rang|^== (Soumis|Environnement|mpicc)'
+Job Slurm 22 soumis (2026-10-24T19:04:15+00:00)
+[19:04:15] +    0s  job 22  PENDING    raison=None
+[19:04:18] +    3s  job 22  COMPLETED  
+---- sacct ----
+sacct: error: slurm_persist_conn_open_without_init: failed to open persistent connection to host:vm:6819: Connection refused
+sacct: error: Sending PersistInit msg: Connection refused
+sacct: error: Problem talking to the database: Connection refused
+---- sortie du job ----
+== Job 22 : 2 nœud(s) [node[1-2]], 4 tâches
+MPI test passed with 4 ranks on 1 host(s)
+SUCCESS: MPI test passed (4 rangs sur 2 nœuds)
+Verdict : succès
+[code retour : 0]

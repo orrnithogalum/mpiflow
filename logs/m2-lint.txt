@@ -1,0 +1,12 @@
+$ cppcheck --enable=warning,style,performance,portability --std=c11 --error-exitcode=1 --inline-suppr --suppress=missingIncludeSystem tests/
+Checking tests/test_mpi.c ...
+[code retour : 0]
+$ cppcheck --enable=warning,style,performance,portability --std=c11 --error-exitcode=1 --inline-suppr --suppress=missingIncludeSystem tests/   # branche avec erreurs volontaires
+Checking tests/test_mpi.c ...
+tests/test_mpi.c:28:36: error: Array 'tab[4]' accessed at index 4, which is out of bounds. [arrayIndexOutOfBounds]
+    int errors = 0; int tab[4]; tab[4] = rank;
+                                   ^
+tests/test_mpi.c:28:40: style: Variable 'tab[4]' is assigned a value that is never used. [unreadVariable]
+    int errors = 0; int tab[4]; tab[4] = rank;
+                                       ^
+[code retour : 1]

@@ -1,0 +1,48 @@
+### A. Référence : needs: [build]
+    test:
+      stage: test
+      extends: [.apt_mpi, .every_pipeline]
+      needs: [build]
+$ gitlab-ci-local --force-shell-executor --shell-isolation build test
+test  imported artifacts in 122 ms
+test  > Test project <projet>/.gitlab-ci-local/builds/build/build
+test  > MPI test passed with 4 ranks on 1 host(s)
+test  finished in 1.78 s
+ PASS  build
+ PASS  test 
+
+### B. needs: supprimé (ordre des stages conservé)
+    test:
+      stage: test
+      extends: [.apt_mpi, .every_pipeline]
+      script:
+$ gitlab-ci-local --force-shell-executor --shell-isolation build test
+test  imported artifacts in 157 ms
+test  > Test project <projet>/.gitlab-ci-local/builds/build/build
+test  > MPI test passed with 4 ranks on 1 host(s)
+test  finished in 1.79 s
+ PASS  build
+ PASS  test 
+
+### C. needs: [] (démarre sans attendre, sans artefact)
+    test:
+      stage: test
+      extends: [.apt_mpi, .every_pipeline]
+      needs: []
+$ gitlab-ci-local --force-shell-executor --shell-isolation build test
+test  > script: line 7: cd: build: No such file or directory
+test  finished in 145 ms  FAIL 1 
+ PASS  build
+ FAIL  test 
+
+### D. needs: supprimé ET test dans le même stage que build
+    test:
+      stage: build
+      extends: [.apt_mpi, .every_pipeline]
+      script:
+$ gitlab-ci-local --force-shell-executor --shell-isolation build test
+test  > script: line 7: cd: build: No such file or directory
+test  finished in 149 ms  FAIL 1 
+ PASS  build
+ FAIL  test 
+

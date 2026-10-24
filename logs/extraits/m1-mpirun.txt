@@ -1,0 +1,18 @@
+$ mpirun -np 4 build/tests/test_mpi 2>&1 | head -3
+--------------------------------------------------------------------------
+mpirun has detected an attempt to run as root.
+
+[code retour : 1]
+$ mpirun --allow-run-as-root -np 4 build/tests/test_mpi 2>&1 | head -3
+--------------------------------------------------------------------------
+There are not enough slots available in the system to satisfy the 4
+slots that were requested by the application:
+[code retour : 1]
+$ nproc; mpirun --allow-run-as-root --oversubscribe -np 4 build/tests/test_mpi
+2
+  rang 0 sur vm
+  rang 1 sur vm
+  rang 2 sur vm
+  rang 3 sur vm
+MPI test passed with 4 ranks on 1 host(s)
+[code retour : 0]

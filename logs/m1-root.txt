@@ -1,0 +1,5 @@
+$ mpirun -np 4 build/tests/test_mpi 2>&1 | head -3
+--------------------------------------------------------------------------
+mpirun has detected an attempt to run as root.
+
+[code retour : 1]

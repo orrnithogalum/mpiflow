@@ -1,0 +1,8 @@
+$ mpicc -O2 -o dbg slide_test_mpi_bug.c && mpirun --allow-run-as-root --oversubscribe --tag-output -np 2 ./dbg 2>&1 | grep -E 'Assertion|passed|exited'
+[1,1]<stderr>:dbg: slide_test_mpi_bug.c:12: main: Assertion `data == 42' failed.
+[1,1]<stderr>:[vm:02657] [1,1]<stderr>:[ 0] [1,0]<stderr>:dbg: slide_test_mpi_bug.c:12: main: Assertion `data == 42' failed.
+mpirun noticed that process rank 1 with PID 0 on node vm exited on signal 6 (Aborted).
+[code retour : 134]
+$ mpicc -O3 -DNDEBUG -o rel slide_test_mpi_bug.c && mpirun --allow-run-as-root --oversubscribe -np 2 ./rel
+MPI test passed with 2 ranks
+[code retour : 0]

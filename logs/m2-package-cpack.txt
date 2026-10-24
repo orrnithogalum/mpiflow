@@ -1,0 +1,11 @@
+# Première version du job package (cpack), même pipeline de tag v0.1.0 en local :
+$ tar tzf build/mpiflow-v0.1.0-linux-x86_64.tar.gz
+mpiflow-v0.1.0-linux-x86_64/share/
+mpiflow-v0.1.0-linux-x86_64/share/doc/
+mpiflow-v0.1.0-linux-x86_64/share/doc/mpiflow/
+mpiflow-v0.1.0-linux-x86_64/share/doc/mpiflow/README.md
+mpiflow-v0.1.0-linux-x86_64/bin/
+mpiflow-v0.1.0-linux-x86_64/bin/test_mpi
+# -> BUILDINFO.txt absent : install(FILES ${CMAKE_BINARY_DIR}/BUILDINFO.txt OPTIONAL)
+#    pointe vers le répertoire du job build (.gitlab-ci-local/builds/build/build),
+#    figé dans CMakeCache.txt, et non vers celui du job package.

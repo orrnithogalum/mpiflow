@@ -1,0 +1,11 @@
+$ cd build && ctest --output-on-failure -j4
+Test project /home/catmull/mpiflow/build
+    Start 1: mpi_bcast_np1
+1/2 Test #1: mpi_bcast_np1 ....................   Passed    0.38 sec
+    Start 2: mpi_bcast_np4
+2/2 Test #2: mpi_bcast_np4 ....................   Passed    0.55 sec
+
+100% tests passed, 0 tests failed out of 2
+
+Total Test time (real) =   0.93 sec
+[code retour : 0]

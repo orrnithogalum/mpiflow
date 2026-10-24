@@ -1,0 +1,19 @@
+$ runuser -l etudiant -c "cd mpiflow && SRUN_MPI=none ./slurm/submit_and_poll.sh slurm/job_ci.sh"   # (sortie filtrée)
+---- sortie du job ----
+== Job 18 : 2 nœud(s) [node[1-2]], 4 tâches
+== Soumis depuis /home/etudiant/mpiflow (commit hors CI)
+== Environnement : système (PATH par défaut)
+== mpicc : /usr/bin/mpicc
+--------------------------------------------------------------------------
+The application appears to have been direct launched using "srun",
+but OMPI was not built with SLURM's PMI support and therefore cannot
+execute. There are several options for building PMI support under
+[...]
+*** An error occurred in MPI_Init
+*** on a NULL communicator
+[... message répété pour chaque rang ...]
+srun: error: node1: tasks 0-1: Exited with exit code 1
+srun: error: node2: tasks 2-3: Exited with exit code 1
+FAILED: srun a renvoyé 1
+Verdict : échec du JOB (FAILED, ExitCode=1:0)
+[code retour : 1]

@@ -1,0 +1,38 @@
+$ cat .gitlab-ci.yml
+stages: [build, test]
+build_gcc:
+  stage: build
+  script:
+    - sleep 2
+    - echo "gcc échoue (après 2 s)" && exit 1
+build_intel:
+  stage: build
+  script:
+    - echo "intel échoue aussi, sans être interrompu par gcc" && exit 1
+build_nvhpc:
+  stage: build
+  script:
+    - echo "nvhpc réussit"
+test:
+  stage: test
+  script:
+    - echo "tests"
+cleanup:
+  stage: test
+  when: on_failure
+  script:
+    - echo "nettoyage / notification"
+
+$ gitlab-ci-local --force-shell-executor
+build_intel > intel échoue aussi, sans être interrompu par gcc
+build_intel finished in 22 ms  FAIL 1
+build_nvhpc > nvhpc réussit
+build_nvhpc finished in 24 ms
+build_gcc   > gcc échoue (après 2 s)
+build_gcc   finished in 2.03 s  FAIL 1
+cleanup     > nettoyage / notification
+cleanup     finished in 14 ms
+ PASS  build_nvhpc
+ PASS  cleanup
+ FAIL  build_gcc
+ FAIL  build_intel

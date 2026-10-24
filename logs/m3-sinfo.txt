@@ -1,0 +1,5 @@
+$ sinfo; srun --mpi=list | tr '\n' ' '; echo
+PARTITION AVAIL  TIMELIMIT  NODES  STATE NODELIST
+debug*       up      30:00      2   idle node[1-2]
+MPI plugin types are... 	none 	pmix 	cray_shasta 	pmi2 specific pmix plugin versions available: pmix_v5 
+[code retour : 0]

@@ -1,0 +1,5 @@
+$ spack -e . external find --not-buildable slurm 2>&1 | tail -3
+==> The following specs have been detected on this system and added to /home/catmull/mpiflow/spack/spack.yaml
+-- no arch / no compilers ---------------------------------------
+slurm@23.11.4
+[code retour : 0]

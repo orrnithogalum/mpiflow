@@ -1,0 +1,31 @@
+$ runuser -l etudiant -c 'cd mpiflow && POLL_INTERVAL=4 ./slurm/submit_and_poll.sh job_long.sh'
+Job Slurm 14 soumis (2026-10-24T13:53:48+00:00)
+[13:53:48] +    0s  job 14  PENDING    raison=None
+[13:53:52] +    4s  job 14  RUNNING    raison=None
+[13:53:56] +    8s  job 14  RUNNING    raison=None
+[13:54:00] +   12s  job 14  NODE_FAIL  raison=BeginTime
+---- sacct ----
+JobID               JobName      State ExitCode    Elapsed   NNodes         NodeList 
+------------ -------------- ---------- -------- ---------- -------- ---------------- 
+14                  ci-long  NODE_FAIL      0:0   00:00:12        2        node[1-2] 
+14.batch              batch  CANCELLED     0:15   00:00:12        1            node1 
+14.0                  sleep  CANCELLED     0:15   00:00:11        2        node[1-2] 
+---- sortie du job ----
+srun: error: Node failure on node2
+slurmstepd-node1: error: *** STEP 14.0 ON node1 CANCELLED AT 2026-10-24T13:54:00 DUE TO NODE FAILURE, SEE SLURMCTLD LOG FOR DETAILS ***
+slurmstepd-node1: error: *** JOB 14 ON node1 CANCELLED AT 2026-10-24T13:54:00 DUE TO NODE FAILURE, SEE SLURMCTLD LOG FOR DETAILS ***
+srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+srun: got SIGCONT
+srun: forcing job termination
+srun: error: node2: task 1: Terminated
+srun: error: node1: task 0: Terminated
+Verdict : échec d'INFRASTRUCTURE (NODE_FAIL) -> relance possible
+[code retour : 75]
+$ squeue ; sacct -j 14 -D -X -o JobID,State,Start,End      # juste après le verdict
+             JOBID PARTITION     NAME     USER ST       TIME  NODES NODELIST(REASON)
+                14     debug  ci-long etudiant PD       0:00      2 (BeginTime)
+JobID             State               Start                 End 
+------------ ---------- ------------------- ------------------- 
+14            NODE_FAIL 2026-10-24T13:53:48 2026-10-24T13:54:00 
+14              PENDING             Unknown             Unknown 
+$ scancel 14     # ce que fait l'after_script du job GitLab

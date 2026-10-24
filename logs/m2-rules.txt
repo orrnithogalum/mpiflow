@@ -1,0 +1,48 @@
+### Push sur une branche de fonctionnalité
+$ gitlab-ci-local --list 
+name            stage    when        allow_failure  needs
+build           build    on_success  false
+test            test     on_success  false          [build]
+registry_login  package  on_success  false          []
+
+### Pipeline de merge request
+$ gitlab-ci-local --list --variable CI_PIPELINE_SOURCE=merge_request_event --unset-variable CI_COMMIT_BRANCH
+name            stage    when        allow_failure  needs
+lint            lint     on_success  false          []
+build           build    on_success  false
+test            test     on_success  false          [build]
+registry_login  package  on_success  false          []
+
+### Tag v1.2.0
+$ gitlab-ci-local --list --variable CI_COMMIT_TAG=v1.2.0 --unset-variable CI_COMMIT_BRANCH
+name            stage    when        allow_failure  needs
+build           build    on_success  false
+test            test     on_success  false          [build]
+package         package  on_success  false          [build,test]
+registry_login  package  on_success  false          []
+
+### Tag seance-inversee
+$ gitlab-ci-local --list --variable CI_COMMIT_TAG=seance-inversee --unset-variable CI_COMMIT_BRANCH
+name            stage    when        allow_failure  needs
+build           build    on_success  false
+test            test     on_success  false          [build]
+registry_login  package  on_success  false          []
+
+### Pipeline planifié sur main, runner hpc-login déclaré
+$ gitlab-ci-local --list --variable CI_PIPELINE_SOURCE=schedule --variable CI_COMMIT_BRANCH=main --variable HPC_ENABLED=true
+name             stage     when        allow_failure  needs
+build            build     on_success  false
+test             test      on_success  false          [build]
+registry_login   package   on_success  false          []
+test_slurm       test_hpc  on_success  false          [test]
+test_slurm_wait  test_hpc  on_success  false          [test]
+
+### Push sur main avec HPC_ENABLED=true (jobs HPC manuels)
+$ gitlab-ci-local --list --variable CI_COMMIT_BRANCH=main --variable HPC_ENABLED=true
+name             stage     when        allow_failure  needs
+build            build     on_success  false
+test             test      on_success  false          [build]
+registry_login   package   on_success  false          []
+test_slurm       test_hpc  manual      true           [test]
+test_slurm_wait  test_hpc  manual      true           [test]
+

@@ -1,0 +1,10 @@
+$ runuser -l etudiant -c 'cd mpiflow && export OMPI_MCA_btl=self,tcp && time sbatch --wait slurm/job_ci.sh'
+Submitted batch job 10
+
+real	0m2.008s
+user	0m0.003s
+sys	0m0.003s
+[code retour : 0]
+$ runuser -l etudiant -c 'cd mpiflow && export OMPI_MCA_btl=self,tcp SRUN_MPI=none && sbatch --wait slurm/job_ci.sh'
+Submitted batch job 11
+[code retour : 1]

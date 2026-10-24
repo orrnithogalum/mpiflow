@@ -1,0 +1,15 @@
+$ runuser -l etudiant -c 'sbatch -J occupe-tout --nodes=2 --ntasks=4 --time=00:02:00 --wrap "sleep 60"'
+Submitted batch job 12
+[code retour : 0]
+$ runuser -l etudiant -c 'cd mpiflow && timeout 15 sbatch --wait slurm/job_ci.sh'; echo "(job CI tué par le timeout simulé)"; squeue
+Submitted batch job 13
+(job CI tué par le timeout simulé)
+             JOBID PARTITION     NAME     USER ST       TIME  NODES NODELIST(REASON)
+                13     debug ci-mpifl etudiant PD       0:00      2 (Resources)
+                12     debug occupe-t etudiant  R       0:15      2 node[1-2]
+[code retour : 0]
+$ J=$(squeue -h -u etudiant -n ci-mpiflow -o %i); runuser -l etudiant -c "scancel $J"; sleep 2; sacct -X -j $J -o JobID,JobName%12,State
+JobID             JobName      State 
+------------ ------------ ---------- 
+13             ci-mpiflow CANCELLED+ 
+[code retour : 0]

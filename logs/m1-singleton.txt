@@ -1,0 +1,5 @@
+$ EXPECTED_RANKS=4 ./build/tests/test_mpi
+[rang 0] taille de MPI_COMM_WORLD = 1, attendu 4 (lancement sans PMI ?)
+  rang 0 sur vm
+MPI test FAILED: 1 error(s) on 1 ranks
+[code retour : 1]

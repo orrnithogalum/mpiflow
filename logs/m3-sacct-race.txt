@@ -1,0 +1,10 @@
+$ sacct -j 19 -o JobID,JobName%14,State,ExitCode,Elapsed,NNodes,NodeList%16   # juste après COMPLETED
+JobID               JobName      State ExitCode    Elapsed   NNodes         NodeList 
+------------ -------------- ---------- -------- ---------- -------- ---------------- 
+19               allocation  COMPLETED      0:0   00:00:01        2            node1 
+19.batch              batch  COMPLETED      0:0   00:00:01        1            node1 
+19.0               test_mpi  COMPLETED      0:0   00:00:00        2        node[1-2] 
+$ sleep 3; sacct -j 19 -X -o JobID,JobName%14,State,NodeList%12
+JobID               JobName      State     NodeList 
+------------ -------------- ---------- ------------ 
+19               ci-mpiflow  COMPLETED    node[1-2] 

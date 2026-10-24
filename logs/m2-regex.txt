@@ -1,0 +1,9 @@
+$ for t in v1.2.0 v0.1.0 v10.20.30 v1.2 1.2.0 v1.2.0-rc1 seance-inversee; do printf '%-16s ' $t; [[ $t =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] && echo 'package: OUI' || echo 'package: non'; done
+v1.2.0           package: OUI
+v0.1.0           package: OUI
+v10.20.30        package: OUI
+v1.2             package: non
+1.2.0            package: non
+v1.2.0-rc1       package: non
+seance-inversee  package: non
+[code retour : 0]
