@@ -1,0 +1,27 @@
+# Environnement Spack du projet mpiflow (Mission 4) : le MANIFESTE (intentions).
+# Les versions exactes, variants, compilateurs et hash sont figés dans spack.lock.
+#
+#   spack env create mpiflow spack/spack.lock   # reproduire l'environnement
+#   spack -e mpiflow install
+spack:
+  specs:
+  - openmpi@5 schedulers=slurm %gcc   # MPI lançable par srun (Slurm/PMIx), compilé par le GCC système
+  - cmake %gcc
+  view: true                          # vue unifiée (bin/, lib/...) dans .spack-env/view
+  concretizer:
+    unify: true                       # une seule version de chaque dépendance dans l'environnement
+  packages:
+    all:
+      # Cible micro-architecture générique : sans cela Spack optimise pour le CPU
+      # de la machine qui concrétise (ici « icelake »). Les VM e2 de GCP peuvent
+      # tomber sur un processeur Intel ou AMD : le binaire doit tourner sur les deux.
+      target: [x86_64_v3]
+    slurm:
+      # Slurm est fourni par le cluster : on déclare l'installation système comme
+      # « externe » et non constructible. Sans cela, schedulers=slurm fait compiler
+      # par Spack un Slurm complet (76 paquets à construire au lieu de 46).
+      # À adapter sur le cluster GCP : spack external find --not-buildable slurm
+      externals:
+      - spec: slurm@23.11.4
+        prefix: /usr
+      buildable: false
