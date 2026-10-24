@@ -1,0 +1,220 @@
+# .gitlab-ci.yml -- projet mpiflow (M2 CHPS, CHPS0902, Cours 6 : séance inversée)
+#
+#   Mission 1 : build -> test (artifacts + needs)
+#   Mission 2 : lint (MR uniquement), package (tags vX.Y.Z), secret (--password-stdin)
+#   Mission 3 : test_slurm (soumission + polling), test_slurm_wait (sbatch --wait),
+#               test_slurm_ssh (runner partagé -> nœud de connexion en SSH)
+#
+# Variables à définir dans Settings > CI/CD > Variables :
+#   FAKE_REGISTRY_TOKEN  Variable, Masked, Protected  (fausse valeur, >= 8 caractères)
+#   HPC_ENABLED          "true" quand un runner « hpc-login » est enregistré sur le cluster
+#   SLURM_SSH_KEY        File, Protected   } uniquement pour la variante SSH
+#   SLURM_KNOWN_HOSTS    File              }
+#   SLURM_LOGIN_HOST, SLURM_USER           }
+
+# Pipelines de MR quand une MR est ouverte, pipelines de branche sinon : pas de
+# doublons (un job sans rules vaut except: merge_requests, cf. doc « job rules »).
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS
+      when: never
+    - if: $CI_COMMIT_BRANCH            # push sur une branche, pipelines planifiés
+    - if: $CI_COMMIT_TAG               # releases
+
+stages: [lint, build, test, package, test_hpc]
+
+variables:
+  DEBIAN_FRONTEND: noninteractive
+  # Open MPI dans Docker : ptrace entre processus interdit -> pas de copie CMA
+  OMPI_MCA_btl_vader_single_copy_mechanism: none
+
+default:
+  image: gcc:13-bookworm
+  interruptible: true                  # un nouveau push annule le pipeline devenu obsolète
+
+# ---------------------------------------------------------------- modèles -----
+.apt_mpi:
+  before_script:
+    - apt-get update -qq
+    - apt-get install -y -qq cmake libopenmpi-dev openmpi-bin > /dev/null
+
+.every_pipeline:
+  rules:
+    - when: on_success                 # branche, MR et tag (le workflow filtre le reste)
+
+# ======================================================= Mission 1 ============
+build:
+  stage: build
+  extends: [.apt_mpi, .every_pipeline]
+  script:
+    - cmake -B build -DCMAKE_BUILD_TYPE=Release
+        -DMPIEXEC_PREFLAGS="--allow-run-as-root;--oversubscribe"
+    - cmake --build build -j"$(nproc)"
+  artifacts:
+    paths: [build/]
+    expire_in: 1 week
+
+test:
+  stage: test
+  extends: [.apt_mpi, .every_pipeline]
+  needs: [build]                       # démarre dès la fin de build, récupère build/
+  script:
+    - cd build
+    - ctest --output-on-failure --output-junit junit.xml
+    # root dans le conteneur + 2 à 4 cœurs sur le runner : les deux options sont requises
+    - mpirun --allow-run-as-root --oversubscribe -np 4 tests/test_mpi
+  artifacts:
+    when: always                       # le rapport JUnit est utile surtout en cas d'échec
+    reports:
+      junit: build/junit.xml
+
+# ======================================================= Mission 2 ============
+lint:
+  stage: lint
+  needs: []
+  before_script:
+    - apt-get update -qq && apt-get install -y -qq cppcheck > /dev/null
+  script:
+    - cppcheck --version
+    - cppcheck --enable=warning,style,performance,portability --std=c11
+        --error-exitcode=1 --inline-suppr --suppress=missingIncludeSystem tests/
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+
+package:
+  stage: package
+  needs:
+    - build
+    - job: test                        # sans cela, needs: [build] seul publierait
+      artifacts: false                 # un paquet même si les tests échouent
+  variables:
+    PKG: mpiflow-${CI_COMMIT_TAG}-linux-x86_64
+  script:
+    # tar explicite plutôt que cpack : l'arbre de build CMake contient des chemins
+    # absolus (non relocalisable) si le job package ne tourne pas au même chemin
+    - mkdir -p "dist/$PKG/bin"
+    - cp build/tests/test_mpi "dist/$PKG/bin/"
+    - cp README.md "dist/$PKG/"
+    - printf 'projet=%s\ntag=%s\ncommit=%s\npipeline=%s\ndate=%s\n'
+        "$CI_PROJECT_PATH" "$CI_COMMIT_TAG" "$CI_COMMIT_SHA" "$CI_PIPELINE_URL"
+        "$(date -u +%FT%TZ)" > "dist/$PKG/BUILDINFO.txt"
+    - tar -C dist -czf "dist/$PKG.tar.gz" "$PKG"
+    - cd dist && sha256sum "$PKG.tar.gz" | tee checksums.txt   # BUILDINFO est dans le tarball
+  artifacts:
+    paths: [dist/*.tar.gz, dist/checksums.txt]
+    expire_in: 6 months
+  rules:
+    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/
+
+registry_login:
+  stage: package
+  needs: []
+  extends: .every_pipeline
+  script:
+    - echo "ref=$CI_COMMIT_REF_NAME protégée=$CI_COMMIT_REF_PROTECTED"
+    - |
+      if [ -z "${FAKE_REGISTRY_TOKEN:-}" ]; then
+        echo "FAKE_REGISTRY_TOKEN vide : variable Protected sur une ref non protégée."
+        exit 0
+      fi
+    - echo "Test du masquage -> $FAKE_REGISTRY_TOKEN"    # doit s'afficher [MASKED]
+    - echo "$FAKE_REGISTRY_TOKEN" |
+        ./scripts/fake_docker_login.sh -u ci-user --password-stdin registry.example.org
+    # Version réelle (image docker:cli + service docker:dind) :
+    #   echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
+
+# ======================================================= Mission 3 ============
+# Runner « shell » installé sur le nœud de connexion du cluster (tag hpc-login) :
+# il n'ouvre aucune connexion entrante (il interroge GitLab en HTTPS) et partage
+# /home (NFS) avec les nœuds de calcul. Il orchestre ; le calcul passe par Slurm.
+.hpc:
+  stage: test_hpc
+  tags: [hpc-login]
+  needs:                               # attendre les tests rapides : inutile de consommer
+    - job: test                        # des heures cluster si le CI est déjà rouge...
+      artifacts: false                 # ...mais sans son binaire (Debian/Open MPI 4.1),
+                                       # inutilisable sur le cluster : on recompile
+  variables:
+    POLL_INTERVAL: "30"
+    SLURM_OPTS: ""                     # ex. "--partition=compute" (vérifier avec sinfo)
+    # script coupé à 40 min pour laisser à after_script le temps d'annuler le job
+    RUNNER_SCRIPT_TIMEOUT: 40m
+    RUNNER_AFTER_SCRIPT_TIMEOUT: 3m
+  before_script:
+    # environnement installé une fois sur le nœud de connexion (store Spack partagé) :
+    # ici « spack install » ne recompile rien, il (re)crée seulement la vue du dépôt
+    - source "${SPACK_ROOT:-$HOME/spack}/share/spack/setup-env.sh"
+    - spack -e spack/ install --fail-fast
+    - spack env activate -d spack/
+    - cmake -B build-hpc -DCMAKE_BUILD_TYPE=Release
+    - cmake --build build-hpc -j4
+  after_script:
+    # exécuté aussi si le job est annulé ou coupé : pas de job Slurm orphelin
+    - |
+      if [ -s .slurm_jobid ] && squeue -h -j "$(cat .slurm_jobid)" 2>/dev/null | grep -q .; then
+        scancel "$(cat .slurm_jobid)" && echo "Job Slurm $(cat .slurm_jobid) annulé"
+      fi
+  artifacts:
+    when: always                       # les logs sont la seule fenêtre sur un échec nocturne
+    paths: [ci-*.out, sacct-*.txt]
+    expire_in: 1 week
+  rules:
+    - if: $HPC_ENABLED != "true"       # sans runner hpc-login, le job resterait « pending »
+      when: never
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      when: manual
+      allow_failure: true
+
+test_slurm:
+  extends: .hpc
+  timeout: 45m                         # > wall-time Slurm (5 min) + attente en file
+  retry:
+    max: 1
+    when: [runner_system_failure, runner_interrupted]
+    exit_codes: 75                     # NODE_FAIL / BOOT_FAIL / PREEMPTED (submit_and_poll.sh)
+  script:
+    - ./slurm/submit_and_poll.sh slurm/job_ci.sh $SLURM_OPTS
+
+test_slurm_wait:
+  extends: .hpc
+  timeout: 45m
+  script:
+    - sbatch --wait --parsable $SLURM_OPTS slurm/job_ci.sh > .slurm_jobid
+    - cat "ci-$(cat .slurm_jobid).out"
+
+# Variante sans runner sur le cluster : un runner partagé de GitLab.com se connecte
+# en SSH à l'IP publique du nœud de connexion (clé en variable File, Protected).
+test_slurm_ssh:
+  stage: test_hpc
+  image: debian:bookworm-slim
+  needs: []
+  timeout: 45m
+  variables:
+    REMOTE: "$SLURM_USER@$SLURM_LOGIN_HOST"
+    WORKDIR: "ci/$CI_PROJECT_NAME/$CI_PIPELINE_ID"
+  before_script:
+    - apt-get update -qq && apt-get install -y -qq openssh-client rsync > /dev/null
+    - chmod 600 "$SLURM_SSH_KEY"       # variable File : elle contient un CHEMIN
+    - install -d -m 700 ~/.ssh && cp "$SLURM_KNOWN_HOSTS" ~/.ssh/known_hosts
+  script:
+    - rsync -a --delete -e "ssh -i $SLURM_SSH_KEY -o BatchMode=yes" ./ "$REMOTE:$WORKDIR/"
+    - ssh -i "$SLURM_SSH_KEY" -o BatchMode=yes -o ServerAliveInterval=60 "$REMOTE"
+        "cd $WORKDIR && bash -l slurm/ci_remote.sh"
+  after_script:                        # shell séparé : seules les variables CI sont connues
+    - rsync -a -e "ssh -i $SLURM_SSH_KEY -o BatchMode=yes"
+        --include='ci-*.out' --include='sacct-*.txt' --exclude='*' "$REMOTE:$WORKDIR/" . || true
+    - ssh -i "$SLURM_SSH_KEY" -o BatchMode=yes "$REMOTE"
+        "cd $WORKDIR && [ -s .slurm_jobid ] && scancel \$(cat .slurm_jobid)" || true
+  artifacts:
+    when: always
+    paths: [ci-*.out, sacct-*.txt]
+    expire_in: 1 week
+  rules:
+    - if: $SLURM_SSH_KEY == null || $SLURM_LOGIN_HOST == null
+      when: never
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      when: manual
+      allow_failure: true

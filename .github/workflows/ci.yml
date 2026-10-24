@@ -1,0 +1,85 @@
+# Équivalent GitHub Actions du .gitlab-ci.yml (Missions 1 et 2)
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+    tags: ["v*.*.*"]
+  pull_request:
+
+env:
+  DEBIAN_FRONTEND: noninteractive
+  OMPI_MCA_btl_vader_single_copy_mechanism: none
+
+jobs:
+  lint:                                  # ~ rules: merge_request_event
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - run: sudo apt-get update -qq && sudo apt-get install -y -qq cppcheck
+      - run: >-
+          cppcheck --enable=warning,style,performance,portability --std=c11
+          --error-exitcode=1 --inline-suppr --suppress=missingIncludeSystem tests/
+
+  build:
+    runs-on: ubuntu-latest
+    container: gcc:13-bookworm
+    steps:
+      - uses: actions/checkout@v7
+      - run: apt-get update -qq && apt-get install -y -qq cmake libopenmpi-dev openmpi-bin
+      - run: |
+          cmake -B build -DCMAKE_BUILD_TYPE=Release -DMPIEXEC_PREFLAGS="--allow-run-as-root;--oversubscribe"
+          cmake --build build -j"$(nproc)"
+      # upload-artifact ne conserve pas les permissions (bit x perdu) : on archive en tar
+      - run: tar -cf build.tar build
+      - uses: actions/upload-artifact@v7
+        with:
+          name: build
+          path: build.tar
+          retention-days: 7
+
+  test:
+    needs: build                         # obligatoire : sans needs, les jobs tournent en parallèle
+    runs-on: ubuntu-latest
+    container: gcc:13-bookworm
+    steps:
+      - uses: actions/checkout@v7
+      - run: apt-get update -qq && apt-get install -y -qq cmake libopenmpi-dev openmpi-bin
+      - uses: actions/download-artifact@v8
+        with:
+          name: build
+      - run: tar -xf build.tar
+      - run: cd build && ctest --output-on-failure
+      - run: mpirun --allow-run-as-root --oversubscribe -np 4 build/tests/test_mpi
+
+  package:
+    needs: [build, test]
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    env:
+      TAG: ${{ github.ref_name }}
+      FAKE_REGISTRY_TOKEN: ${{ secrets.FAKE_REGISTRY_TOKEN }}   # Settings > Secrets
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with:
+          name: build
+      - name: Vérifier le format vX.Y.Z (le filtre de tags est un glob, pas une regex)
+        run: '[[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]'
+        shell: bash
+      - run: |
+          tar -xf build.tar
+          PKG="mpiflow-${TAG}-linux-x86_64"
+          mkdir -p "dist/$PKG/bin" && cp build/tests/test_mpi "dist/$PKG/bin/" && cp README.md "dist/$PKG/"
+          printf 'tag=%s\ncommit=%s\nrun=%s\n' "$TAG" "$GITHUB_SHA" \
+            "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" > "dist/$PKG/BUILDINFO.txt"
+          tar -C dist -czf "dist/$PKG.tar.gz" "$PKG"
+          cd dist && sha256sum "$PKG.tar.gz" | tee checksums.txt
+      - run: echo "$FAKE_REGISTRY_TOKEN" | ./scripts/fake_docker_login.sh -u ci-user --password-stdin ghcr.io
+      - uses: actions/upload-artifact@v7
+        with:
+          name: package
+          path: |
+            dist/*.tar.gz
+            dist/checksums.txt
