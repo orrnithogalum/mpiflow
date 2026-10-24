@@ -1,0 +1,18 @@
+# build
+build/
+build-hpc/
+# Spack : la vue et l'état local de l'environnement ne se versionnent pas
+spack/.spack-env/
+# sorties Slurm / CI
+ci-*.out
+sacct-*.txt
+.slurm_jobid
+.gitlab-ci-local/
+# LaTeX
+*.aux
+*.log
+*.out
+*.toc
+*.fdb_latexmk
+*.fls
+*.synctex.gz
