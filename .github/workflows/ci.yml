@@ -2,12 +2,13 @@
 #
 #   Mission 1 : build -> test (artefact + needs)
 #   Mission 2 : lint (pull requests), package (tags vX.Y.Z), secret via --password-stdin
-#   Mission 3 : test_slurm sur le runner auto-hébergé « hpc-login » (cluster de deux VM)
+#   Mission 3 : test_slurm sur ROMEO, par SSH depuis un runner auto-hébergé (étiquette romeo-ssh)
 #
-# Réglages du dépôt (posés par scripts/github_evidence.py et cluster/gcp.sh) :
+# Réglages du dépôt (posés par scripts/github_evidence.py, romeo/romeo.sh et romeo/runner.sh) :
 #   secret FAKE_REGISTRY_TOKEN   fausse valeur, dans l'environnement « release »
 #                                (limité aux tags v*) ou, à défaut, au niveau du dépôt
-#   variable HPC_ENABLED=true    tant que le runner hpc-login existe
+#   variable HPC_ENABLED=true    tant que le runner romeo-ssh est enregistré
+#   variables ROMEO_HOST, SBATCH_ACCOUNT, SBATCH_PARTITION, SBATCH_CONSTRAINT...
 name: CI
 
 on:
@@ -140,49 +141,41 @@ jobs:
             dist/checksums.txt
 
   # ===================================================== Mission 3 =============
+  # Le runner tourne sur le poste de l'étudiant (romeo/runner.sh) et atteint ROMEO par SSH :
+  # aucune clé n'est confiée à GitHub et rien ne tourne en permanence sur le nœud de connexion.
   test_slurm:
     needs: test                        # pas de cluster si les tests unitaires échouent
     if: >-
       vars.HPC_ENABLED == 'true' &&
       (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.hpc))
-    runs-on: [self-hosted, hpc-login]  # runner installé sur le nœud de connexion
+    runs-on: [self-hosted, romeo-ssh]
     timeout-minutes: 30                # le wall-time Slurm ne compte pas l'attente en file
     env:
-      POLL_INTERVAL: 10
-      MPI_LAUNCHER: ${{ vars.MPI_LAUNCHER || 'srun' }}
+      ROMEO_HOST: ${{ vars.ROMEO_HOST }}
+      ROMEO_ENV: ${{ vars.ROMEO_ENV }}
+      SBATCH_ACCOUNT: ${{ vars.SBATCH_ACCOUNT }}
+      SBATCH_PARTITION: ${{ vars.SBATCH_PARTITION }}
+      SBATCH_CONSTRAINT: ${{ vars.SBATCH_CONSTRAINT }}
+      SBATCH_QOS: ${{ vars.SBATCH_QOS }}
+      MPI_LAUNCHER: ${{ vars.MPI_LAUNCHER }}
+      POLL_INTERVAL: 15
       METHODE: ${{ inputs.methode || 'polling' }}
       SBATCH_OPTS: ${{ inputs.sbatch_opts }}
     steps:
       - uses: actions/checkout@v7
-      - name: Environnement Spack (spack.lock) et compilation avec le MPI du cluster
-        run: bash slurm/build_hpc.sh
-      - name: Soumission Slurm et suivi
+      - name: Copie du dépôt sur ROMEO
+        run: bash romeo/ci_ssh.sh sync
+      - name: Compilation, soumission et suivi sur ROMEO
         timeout-minutes: 25            # < timeout du job : l'étape de nettoyage a le temps de tourner
         run: |
           read -ra opts <<< "$SBATCH_OPTS"
-          if [ "$METHODE" = wait ]; then
-            set +e
-            sbatch --wait --parsable "${opts[@]}" slurm/job_ci.sh > .slurm_jobid
-            rc=$?
-            cat "ci-$(cut -d';' -f1 .slurm_jobid).out"
-            exit "$rc"
-          fi
-          # polling ; une seule relance, et seulement pour un échec d'infrastructure (code 75)
-          ./slurm/submit_and_poll.sh slurm/job_ci.sh "${opts[@]}" && exit 0 || rc=$?
-          [ "$rc" -eq 75 ] || exit "$rc"
-          echo "::warning::échec d'infrastructure, nouvelle soumission"
-          ./slurm/submit_and_poll.sh slurm/job_ci.sh "${opts[@]}"
+          bash romeo/ci_ssh.sh run "${opts[@]}"
       - name: Annuler le job Slurm s'il est encore dans la file
         if: always()                   # aussi après annulation ou dépassement du timeout
-        run: |
-          [ -s .slurm_jobid ] || exit 0
-          id="$(cut -d';' -f1 .slurm_jobid)"
-          if [ -n "$(squeue -h -j "$id" 2>/dev/null)" ]; then
-            echo "job $id encore présent : scancel"
-            scancel "$id"
-          else
-            echo "job $id terminé, rien à annuler"
-          fi
+        run: bash romeo/ci_ssh.sh cancel
+      - name: Rapatrier les sorties du job
+        if: always()
+        run: bash romeo/ci_ssh.sh fetch
       - uses: actions/upload-artifact@v7
         if: always()
         with:

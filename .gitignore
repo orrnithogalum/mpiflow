@@ -20,3 +20,4 @@ __pycache__/
 *.pid
 .w1
 .w2
+romeo/romeo.env

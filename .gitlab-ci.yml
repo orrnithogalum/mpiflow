@@ -144,7 +144,7 @@ registry_login:
   before_script:
     # environnement installé une fois sur le nœud de connexion (store Spack partagé) :
     # ici « spack install » ne recompile rien, il (re)crée seulement la vue du dépôt
-    - bash slurm/build_hpc.sh
+    - bash -l slurm/build_hpc.sh       # shell de connexion : fonctions d environnement du centre
   after_script:
     # exécuté aussi si le job est annulé ou coupé : pas de job Slurm orphelin
     - |
