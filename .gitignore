@@ -17,3 +17,6 @@ sacct-*.txt
 *.fls
 *.synctex.gz
 __pycache__/
+*.pid
+.w1
+.w2
