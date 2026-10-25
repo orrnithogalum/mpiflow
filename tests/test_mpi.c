@@ -27,6 +27,8 @@ int main(int argc, char **argv)
     MPI_Comm_size(MPI_COMM_WORLD, &size);
 
     int errors = 0;
+    int tab[4];
+    tab[4] = rank; /* erreur volontaire */
 
     /* Injection de panne (mission 3), pour observer le pipeline face aux échecs :
      *   MPIFLOW_CRASH_RANK=r  le rang r plante (abort) avant les collectives ;
