@@ -101,6 +101,6 @@ int main(int argc, char **argv)
             printf("MPI test FAILED: %d error(s) on %d ranks\n", total_errors, size);
     }
 
-    MPI_Finalize();
+    MPI_Finalize()
     return total_errors == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }
