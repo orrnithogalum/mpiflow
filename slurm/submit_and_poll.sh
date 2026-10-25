@@ -42,9 +42,10 @@ while true; do
     printf '[%s] +%5ss  job %s  %-10s %s\n' "$(date +%T)" "$(( $(date +%s) - start ))" \
            "${jobid}" "${state:-INCONNU}" "${reason:+raison=${reason}}"
 
-    # job déjà démarré puis remis en file par Slurm (NODE_FAIL et requeue automatique)
-    if [[ "${state}" == PENDING && "$(scontrol_field Restarts)" -gt 0 ]] 2>/dev/null; then
-        echo "job remis en file par Slurm après une panne (Restarts=$(scontrol_field Restarts))"
+    # job remis en file par Slurm (après NODE_FAIL, préemption ou scontrol requeue) : on ne
+    # l'attend pas, c'est un échec d'infrastructure
+    if [[ "${state}" =~ ^(PENDING|REQUEUED|RUNNING|CONFIGURING)$ && "$(scontrol_field Restarts)" -gt 0 ]] 2>/dev/null; then
+        echo "job remis en file par Slurm (Restarts=$(scontrol_field Restarts)) : on ne l'attend pas"
         state=REQUEUED
         break
     fi

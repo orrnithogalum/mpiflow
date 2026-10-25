@@ -1,0 +1,12 @@
+# Environnement Spack dédié sur ROMEO (mission 4). Il s'appuie sur l'installation partagée
+# du centre, accessible après romeo_load_x64cpu_env : la concrétisation réutilise les paquets
+# déjà installés dans /apps au lieu de les recompiler. Le verrou spack.lock est produit sur
+# ROMEO par romeo/evidence.sh, puis commité.
+spack:
+  specs:
+  - openmpi
+  - cmake
+  view: true
+  concretizer:
+    unify: true
+    reuse: true          # préférer les paquets déjà installés (installation partagée)

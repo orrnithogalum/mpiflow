@@ -1,5 +1,7 @@
-# Environnement Spack du projet mpiflow (mission 4) : le MANIFESTE, c'est-à-dire les
-# intentions. Versions, variants, compilateurs et hash exacts sont figés dans spack.lock.
+# Environnement Spack du projet mpiflow sur un poste Linux (mission 4) : le MANIFESTE,
+# c'est-à-dire les intentions. Versions, variants, compilateurs et hash exacts sont figés
+# dans spack.lock.
+# Sur ROMEO, voir spack/romeo/ (installation partagée du centre).
 #   spack -e spack/ install        installe exactement le contenu de spack.lock
 spack:
   specs:
@@ -10,7 +12,7 @@ spack:
     unify: true                       # une seule version de chaque dépendance
   packages:
     all:
-      target: [x86_64_v3]             # portable : les VM e2 sont Intel ou AMD
+      target: [x86_64_v3]             # portable : pas d'optimisation pour ce seul processeur
     slurm:                            # Slurm du système, jamais recompilé par Spack
       externals:
       - spec: slurm@23.11.4

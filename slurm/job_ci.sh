@@ -1,41 +1,31 @@
-#!/bin/bash
+#!/bin/bash -l
 # job_ci.sh -- test MPI multi-nœuds soumis par le pipeline (Mission 3)
 #
-# Ressources : 2 nœuds × 2 tâches = 4 rangs MPI (VM e2-standard-2, 2 vCPU chacune).
-# Sur un vrai cluster : --ntasks=8 --ntasks-per-node=4. Toute valeur #SBATCH peut être
-# surchargée à la soumission (sbatch --partition=compute job_ci.sh) ; la partition
-# « debug » est celle de cluster/node_setup.sh (vérifier avec sinfo).
+# 2 nœuds, 8 tâches (4 par nœud), cinq minutes. La partition « debug » du sujet n'existe pas
+# partout : sur ROMEO, la partition, le projet et le type de nœud viennent des variables
+# SBATCH_PARTITION, SBATCH_ACCOUNT et SBATCH_CONSTRAINT (romeo/romeo.env), que sbatch fait
+# passer avant les lignes #SBATCH ci-dessous. Vérifier les partitions avec sinfo -s.
 #
 #SBATCH --job-name=ci-mpiflow
 #SBATCH --partition=debug
 #SBATCH --nodes=2
-#SBATCH --ntasks=4
-#SBATCH --ntasks-per-node=2
+#SBATCH --ntasks=8
+#SBATCH --ntasks-per-node=4
 #SBATCH --time=00:05:00
 #SBATCH --output=ci-%j.out
 
-set -uo pipefail
+set -o pipefail      # pas de -u : les fonctions de Spack utilisent des variables non définies
 
 echo "== Job ${SLURM_JOB_ID} : ${SLURM_NNODES} nœud(s) [${SLURM_JOB_NODELIST}], ${SLURM_NTASKS} tâches"
 echo "== Soumis depuis ${SLURM_SUBMIT_DIR} (commit ${GITHUB_SHA:-${CI_COMMIT_SHA:-hors CI}})"
 cd "${SLURM_SUBMIT_DIR}" || exit 2
 
 # --- 1. Environnement logiciel -------------------------------------------------
-# Les deux VM n'ont pas Lmod : on active directement l'environnement Spack du dépôt
-# (spack.yaml + spack.lock), installé dans /shared, partagé en NFS par les deux nœuds.
-# Si un cluster fournit des modules, ils sont utilisés en priorité.
-SPACK_ROOT="${SPACK_ROOT:-$HOME/spack}"
-if type module >/dev/null 2>&1 && module -t avail openmpi 2>&1 | grep -q '^openmpi'; then
-    module purge
-    module load openmpi
-    ENV_SOURCE="Lmod (module load openmpi)"
-elif [[ -f "${SPACK_ROOT}/share/spack/setup-env.sh" && -f spack/spack.lock ]]; then
-    # shellcheck disable=SC1091
-    source "${SPACK_ROOT}/share/spack/setup-env.sh"
-    spack env activate -d spack/
-    ENV_SOURCE="Spack (environnement du dépôt, spack.lock)"
-else
-    ENV_SOURCE="système (PATH par défaut)"
+# Sur ROMEO, pas de modules : l'installation Spack partagée tient ce rôle (slurm/env.sh).
+# On y active l'environnement dédié du dépôt, avec lequel le binaire a été compilé.
+source slurm/env.sh
+if [[ -n "${SPACK_ENV_DIR}" && -f "${SPACK_ENV_DIR}/spack.lock" ]]; then
+    spack env activate -d "${SPACK_ENV_DIR}"
 fi
 echo "== Environnement : ${ENV_SOURCE}"
 echo "== mpicc : $(command -v mpicc || echo absent)"
@@ -51,8 +41,8 @@ fi
 # ce qui arrive quand srun lance des « singletons » faute de support PMI.
 # --kill-on-bad-exit=1 : si un rang plante, srun arrête les autres immédiatement
 # (sinon ils restent bloqués dans une collective jusqu'au wall-time).
-# MPI_LAUNCHER=mpirun : repli si le greffon PMIx de Slurm et le MPI de Spack ne
-# s'entendent pas (mpirun démarre alors ses démons sur les nœuds alloués via srun).
+# MPI_LAUNCHER=mpirun : repli si le lancement direct par srun (PMIx) ne fonctionne pas
+# avec le MPI disponible (mpirun démarre alors ses démons sur les nœuds alloués).
 export EXPECTED_RANKS="${SLURM_NTASKS}"
 if [[ "${MPI_LAUNCHER:-srun}" == mpirun ]]; then
     mpirun -np "${SLURM_NTASKS}" "${BIN}"
