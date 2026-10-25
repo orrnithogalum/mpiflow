@@ -1,14 +1,14 @@
 {
  "push-main": {
   "titre": "push sur main",
-  "url": "https://github.com/orrnithogalum/mpiflow/actions/runs/40208605871",
+  "url": "https://github.com/orrnithogalum/mpiflow/actions/runs/40212349681",
   "jobs": {
    "build": "success",
    "registry_login": "success",
    "lint": "skipped",
    "test": "success",
-   "test_slurm": "skipped",
-   "package": "skipped"
+   "package": "skipped",
+   "test_slurm": "skipped"
   }
  },
  "sans-needs": {
