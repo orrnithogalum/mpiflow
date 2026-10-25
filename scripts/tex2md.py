@@ -51,12 +51,13 @@ def args(s, i, spec):
 # ------------------------------------------------------------ état des preuves
 ex = os.path.exists
 flags = {"github": ex("logs/github/meta.tex"), "ghdemo": ex("logs/github/m2-pr.txt"),
-         "ghhpc": ex("logs/github/m3-ci-polling.txt"), "cluster": ex("logs/cluster/meta.tex"),
+         "ghhpc": ex("logs/github/m3-ci-polling.txt"), "romeo": ex("logs/romeo/meta.tex"),
          "brouillon": False}
-meta = {"depot": "\\emph{URL du dépôt à compléter}", "clusterinfo": "\\emph{type et zone des VM à compléter}",
+meta = {"depot": "\\emph{URL du dépôt à compléter}", "romeoinfo": "\\emph{système, Slurm, partition à compléter}",
+        "spackreuse": "?", "spackbuild": "?",
         "spackinstalltime": "\\emph{durée à compléter}", "mpilauncher": "srun", "ghsecret": "environnement",
         "etudiants": "Sylvain ROWE"}
-for f in ("logs/github/meta.tex", "logs/cluster/meta.tex"):
+for f in ("logs/github/meta.tex", "logs/romeo/meta.tex"):
     if ex(f):
         for k, v in re.findall(r"\\renewcommand\{\\(\w+)\}\{(.*)\}\s*$", open(f, encoding="utf-8").read(), re.M):
             meta[k] = v
@@ -161,6 +162,9 @@ def figure_block(inner):
         inner = inner.replace(re.search(r"\\input\{[^}]*\}", inner).group(0),
                               open(f, encoding="utf-8").read())
     tikz = re.search(r"\\begin\{tikzpicture\}.*?\\end\{tikzpicture\}", inner, re.S)
+    lead = inner[:tikz.start()] if tikz else ""
+    lead = re.sub(r"\\(begin|end)\{minipage\}(\{[^}]*\})?|\\setlength\{[^}]*\}\{[^}]*\}"
+                  r"|\\hspace\*?\{[^}]*\}|\\vspace\*?\{[^}]*\}|\\noindent|\\par\b|%", " ", lead)
     capm = re.search(r"\\captionof\{figure\}", inner)
     cap, j = args(inner, capm.end(), "m")
     after = inner[j:]
@@ -173,7 +177,7 @@ def figure_block(inner):
     comment = after.split("\\commentaire", 1)[1] if "\\commentaire" in after else after
     png = tikz_png(tikz.group(0), n) if tikz else None
     img = f"\\includegraphics{{{png}}}" if png else "\\emph{(figure : voir le PDF)}"
-    return (f"\n\n{img}\n\n\\emph{{Figure {n}. {cap[0]}}}\n\n" + comment + "\n\n")
+    return (f"\n\n{lead.strip()}\n\n{img}\n\n\\emph{{Figure {n}. {cap[0]}}}\n\n" + comment + "\n\n")
 
 
 body = re.sub(r"\\begin\{figtexte\}(.*?)\\end\{figtexte\}", lambda m: figure_block(m.group(1)), body, flags=re.S)

@@ -6,9 +6,9 @@
   logs/figures/runs.tex    jobs exécutés selon l'événement déclencheur
                            (logs/github/runs.json ; à défaut, comportement attendu du workflow)
   logs/figures/chrono.tex  chronologie des jobs Slurm des scénarios de la mission 3
-                           (logs/cluster/ ; à défaut, mini-cluster de reproduction, logs/)
+                           (logs/romeo/ ; à défaut, mini-cluster de reproduction, logs/)
 
-Lancé par scripts/github_evidence.py, cluster/gcp.sh evidence et scripts/finalise.sh.
+Lancé par scripts/github_evidence.py, romeo/romeo.sh evidence et scripts/finalise.sh.
 """
 import json
 import os
@@ -25,7 +25,7 @@ ROWS = [
     ("tag", r"tag \texttt{v0.1.0}"),
     ("rc1", r"tag \texttt{v0.1.0-rc1}"),
     ("publier", r"\texttt{package} forcé depuis \texttt{main}"),
-    ("hpc-polling", r"lancement manuel, cluster"),
+    ("hpc-polling", r"lancement manuel, ROMEO"),
     ("hpc-annulation", r"lancement manuel, annulé"),
 ]
 S, F, K, C = "success", "failure", "skipped", "cancelled"
@@ -91,7 +91,7 @@ def runs_figure():
            r" (\texttt{scripts/github\_evidence.py} remplace cette figure)")
     cap = (r"\captionof{figure}{Jobs exécutés selon l'événement déclencheur, " + src +
            r". Une ligne par run ; \texttt{test\_slurm} tourne sur le runner auto-hébergé"
-           r" \texttt{hpc-login}, les autres jobs sur les runners de GitHub.}\label{fig:runs}")
+           r" \texttt{romeo-ssh}, qui soumet sur ROMEO, les autres jobs sur les runners de GitHub.}\label{fig:runs}")
     return "\n".join(out) + "\n" + cap + "\n"
 
 
@@ -107,11 +107,12 @@ def parse_sacct(path):
 
 
 COL = {"COMPLETED": "oiVert", "FAILED": "oiVermillon", "TIMEOUT": "oiOrange",
-       "NODE_FAIL": "oiPourpre", "CANCELLED": "black!45"}
+       "NODE_FAIL": "oiPourpre", "REQUEUED": "oiPourpre", "PREEMPTED": "oiPourpre",
+       "CANCELLED": "black!45"}
 
 
 def chrono_figure():
-    base = "logs/cluster" if os.path.exists("logs/cluster/m3-chronologie.txt") else "logs"
+    base = "logs/romeo" if os.path.exists("logs/romeo/m3-chronologie.txt") else "logs"
     scen = [l.strip().split("|", 1) for l in open(f"{base}/m3-scenarios.txt", encoding="utf-8") if "|" in l]
     recs = parse_sacct(f"{base}/m3-chronologie.txt")
     rows = []
@@ -119,49 +120,57 @@ def chrono_figure():
         rr = [r for r in recs if r[0] == jid]
         if rr:
             rows.append((jid, label, rr))
-    tmax = max(((r[4] or r[2]) - rr[0][2]).total_seconds() for _, _, rr in rows for r in rr)
-    cap = 130.0 if tmax > 200 else max(30.0, tmax)
-    width, lab, dy = 7.6, 3.9, 0.74
+    ends = sorted(((rr[-1][4] or rr[-1][2]) - rr[0][2]).total_seconds() for _, _, rr in rows)
+    tmax = ends[-1]
+    # une attente exceptionnelle (file chargée) ne doit pas écraser les autres barres
+    if len(ends) > 1 and tmax > 120 and tmax > 2.5 * ends[-2]:
+        cap = float(-(-1.3 * ends[-2] // 10) * 10)
+    else:
+        cap = max(30.0, tmax)
+    step = next(st for st in (10, 20, 30, 60, 120, 300, 600, 1200) if cap / st <= 7)
+    width, lab, dy = 7.4, 3.9, 0.74
     k = width / cap
     out = [r"\begin{tikzpicture}[font=\sffamily\scriptsize]"]
-    step = 20 if cap <= 140 else 30
     ytop = 0.25
     out.append(rf"\draw[black!55] ({lab},{ytop}) -- ({lab + width},{ytop});")
     for t in range(0, int(cap) + 1, step):
         out.append(rf"\draw[black!55] ({lab + t * k},{ytop}) -- ({lab + t * k},{ytop + 0.08}) "
                    rf"node[above, text=black!70] {{{t}}};")
     out.append(rf"\node[anchor=west, text=black!70] at ({lab + width + 0.1},{ytop + 0.18}) {{s}};")
+    seen = []
     for i, (jid, label, rr) in enumerate(rows):
         y = -(i + 0.4) * dy
         t0 = rr[0][2]
         out.append(rf"\node[anchor=east, align=right] at ({lab - 0.15},{y}) {{{label}\\[-1pt]"
                    rf"{{\color{{black!55}}job {jid}}}}};")
         endx, final = lab, ""
+        clip = lambda v: min(v, cap)
         for n, (_, state, sub, start, end) in enumerate(rr):
             s = (sub - t0).total_seconds()
             e = ((end or sub) - t0).total_seconds()
             b = (start - t0).total_seconds() if start else e
-            clip = lambda v: min(v, cap)
             if b > s:
                 out.append(rf"\fill[oiCiel!60] ({lab + clip(s) * k},{y - 0.13}) rectangle "
                            rf"({lab + clip(b) * k},{y + 0.13});")
-            if state in COL and e - b < 0.12 / k:         # exécution très courte : rester visible
-                e = b + 0.12 / k if state != "CANCELLED" or start else e
+            if start and state in COL and e - b < 0.12 / k:      # exécution très courte : rester visible
+                e = b + 0.12 / k
             if e > b:
                 out.append(rf"\fill[{COL.get(state, 'black!45')}] ({lab + clip(b) * k},{y - 0.13}) rectangle "
                            rf"({lab + clip(e) * k},{y + 0.13});")
+                if state not in seen:
+                    seen.append(state)
             if e > cap:
-                xz = lab + width + 0.05
-                out.append(rf"\draw[white, line width=2pt] ({xz - 0.35},{y - 0.2}) -- ({xz - 0.25},{y + 0.2});")
+                xz = lab + width
+                out.append(rf"\draw[white, line width=2pt] ({xz - 0.3},{y - 0.2}) -- ({xz - 0.2},{y + 0.2});")
             endx = lab + clip(e) * k
             txt = state.replace("_", r"\_")
             if n < len(rr) - 1:
                 out.append(rf"\draw[black!70] ({endx},{y - 0.2}) -- ({endx},{y + 0.2});")
-                final += txt + r"\\[-1pt]remis en file, puis "
+                final += ("" if state == "REQUEUED" else txt + r"\\[-1pt]") + r"remis en file, puis "
             else:
                 final += txt
         if "timeout CI" in label or len(rr) > 1:
-            final = final.replace("CANCELLED", r"annulé (\texttt{scancel})").replace("puis annulé", "annulé")
+            final = final.replace("CANCELLED", r"annulé (\texttt{scancel})")
         tend = ((rr[-1][4] or rr[-1][2]) - t0).total_seconds()
         if tend > cap:
             final += rf" à {int(tend)} s"
@@ -171,13 +180,13 @@ def chrono_figure():
     out.append(rf"\node[anchor=west] at (0.5,{yl}) {{PENDING (en file)}};")
     out.append(rf"\node[anchor=west] at (3.0,{yl}) {{RUNNING, terminé en :}};")
     x = 5.75
-    for col, txt in (("oiVert", "COMPLETED"), ("oiVermillon", "FAILED"), ("oiOrange", "TIMEOUT"),
-                     ("oiPourpre", "NODE\\_FAIL")):
-        out.append(rf"\fill[{col}] ({x},{yl - 0.09}) rectangle ({x + 0.45},{yl + 0.09});")
-        out.append(rf"\node[anchor=west] at ({x + 0.5},{yl}) {{{txt}}};")
+    order = ["COMPLETED", "FAILED", "TIMEOUT", "NODE_FAIL", "REQUEUED", "PREEMPTED"]
+    for st in [o for o in order if o in seen]:
+        out.append(rf"\fill[{COL[st]}] ({x},{yl - 0.09}) rectangle ({x + 0.45},{yl + 0.09});")
+        out.append(rf"\node[anchor=west] at ({x + 0.5},{yl}) {{{st.replace('_', chr(92) + '_')}}};")
         x += 2.35
     out.append(r"\end{tikzpicture}")
-    where = (r"sur le cluster de deux VM (\texttt{logs/cluster/m3-chronologie.txt})" if base != "logs" else
+    where = (r"sur ROMEO (\texttt{logs/romeo/m3-chronologie.txt})" if base != "logs" else
              r"sur le mini-cluster de reproduction (\texttt{logs/m3-chronologie.txt})")
     cap_txt = (r"\captionof{figure}{Chronologie des jobs Slurm des scénarios de la mission 3, " + where +
                r", d'après les heures de soumission, de début et de fin enregistrées par"
@@ -212,9 +221,48 @@ def sortie(lines):
     return out
 
 
+TABLE = re.compile(r"^  job\s+résultat\s+durée")
+LIGNE_JOB = re.compile(r"^  (\S+)\s+(\S+)\s+")
+RANG = re.compile(r"^(\s*)rang (\d+) sur (\S+)$")
+
+
+def resserre(lines):
+    """Tableau des jobs d'un run GitHub sur deux lignes, rangs MPI regroupés par nœud."""
+    out, i = [], 0
+    while i < len(lines):
+        if TABLE.match(lines[i]):
+            faits, ignores = [], []
+            i += 1
+            while i < len(lines) and LIGNE_JOB.match(lines[i]):
+                job, res = LIGNE_JOB.match(lines[i]).groups()
+                (ignores.append(job) if res == "skipped" else faits.append(f"{job} {res}"))
+                i += 1
+            out.append("  jobs exécutés : " + ", ".join(faits))
+            if ignores:
+                out.append("  jobs ignorés  : " + ", ".join(ignores))
+            continue
+        m = RANG.match(lines[i])
+        if m:
+            j = i
+            while j + 1 < len(lines) and RANG.match(lines[j + 1]) \
+                    and RANG.match(lines[j + 1]).group(3) == m.group(3):
+                j += 1
+            if j - i >= 2:
+                fin = RANG.match(lines[j]).group(2)
+                out.append(f"{m.group(1)}rangs {m.group(2)} à {fin} sur {m.group(3)}"
+                           f"   [{j - i + 1} lignes regroupées]")
+            else:
+                out += lines[i:j + 1]
+            i = j + 1
+            continue
+        out.append(lines[i])
+        i += 1
+    return out
+
+
 def condense(src, dst):
     """Extrait lisible d'un log : relevés identiques du suivi, traces de pile et sortie du job abrégés."""
-    lines = sortie(open(src, encoding="utf-8").read().splitlines())
+    lines = resserre(sortie(open(src, encoding="utf-8").read().splitlines()))
     out, i = [], 0
     while i < len(lines):
         m = POLL.match(lines[i])
@@ -242,10 +290,10 @@ def condense(src, dst):
 
 
 def extraits():
-    for d in ("logs/cluster", "logs/github"):
+    for d, motif in (("logs/romeo", "m3-"), ("logs/github", "m")):
         if os.path.isdir(d):
             for f in sorted(os.listdir(d)):
-                if f.startswith("m3-") and f.endswith(".txt"):
+                if f.startswith(motif) and f.endswith(".txt"):
                     condense(f"{d}/{f}", f"logs/extraits/{os.path.basename(d)}-{f}")
 
 

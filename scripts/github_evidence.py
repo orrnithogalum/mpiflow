@@ -5,10 +5,11 @@ A lancer depuis la racine du dépôt, sur la branche main, arbre de travail prop
 
     python3 scripts/github_evidence.py init [--public]   # dépôt, secret, push de main (~3 min)
     python3 scripts/github_evidence.py demo              # needs, PR + lint, tags, protection (~15 min)
-    python3 scripts/github_evidence.py hpc               # test_slurm sur le runner hpc-login (~10 min)
+    python3 scripts/github_evidence.py hpc               # test_slurm sur ROMEO (~10 min hors attente)
 
-Prérequis : gh connecté (gh auth login). « hpc » suppose le cluster prêt (cluster/gcp.sh
-setup puis evidence). Chaque étape écrit ses preuves dans logs/github/ et met à jour
+Prérequis : gh connecté (gh auth login -s workflow). « hpc » suppose ROMEO prêt
+(romeo/romeo.sh check puis evidence) et le runner lancé dans un autre terminal
+(romeo/runner.sh start). Chaque étape écrit ses preuves dans logs/github/ et met à jour
 logs/github/runs.json (lu par scripts/figures.py) et logs/github/meta.tex (lu par le rapport).
 
 Aucun jeton n'est manipulé ici : gh fournit lui-même l'authentification à git
@@ -368,14 +369,15 @@ def _demo():
 def hpc():
     say("Mission 3 : runner auto-hébergé")
     runners = ghj("api", f"repos/{R}/actions/runners")["runners"]
-    rn = next((x for x in runners if x["name"] == "hpc-login"), None)
+    rn = next((x for x in runners if any(l["name"] == "romeo-ssh" for l in x["labels"])
+               and x["status"] == "online"), None)
     if not rn or rn["status"] != "online":
-        sys.exit("Runner hpc-login absent ou hors ligne : lancer « bash cluster/gcp.sh setup ».")
-    print(f"  runner hpc-login : {rn['status']}, étiquettes "
+        sys.exit("Aucun runner romeo-ssh en ligne : lancer « bash romeo/runner.sh start » dans un autre terminal.")
+    print(f"  runner {rn['name']} : {rn['status']}, étiquettes "
           f"{', '.join(l['name'] for l in rn['labels'])}")
 
     def slurm_log(job):
-        return grep(log_of(job), r"^> Run|mpicc :|Job Slurm|^\[\d\d:|début estimé|Verdict|SUCCESS|FAILED"
+        return grep(log_of(job), r"^> Run|dépôt copié|environnement :|mpicc :|Job Slurm|^\[\d\d:|début estimé|Verdict|SUCCESS|FAILED"
                     r"|passed|rang \d|COMPLETED|CANCELLED|^---- |^JobID|^\d+(\.\w+)? |encore présent"
                     r"|terminé, rien|scancel|Error|cancel", 40)
 
@@ -387,7 +389,7 @@ def hpc():
         remember(f"hpc-{methode}", f"workflow_dispatch, test_slurm ({methode})", r, js)
         ts = next(j for j in js if j["name"] == "test_slurm")
         write(f"m3-ci-{methode}.txt", header(r, f"workflow_dispatch, méthode {methode}") + table(js)
-              + ["", "--- job test_slurm (runner hpc-login) ---"] + slurm_log(ts))
+              + ["", "--- job test_slurm (runner romeo-ssh, SSH vers ROMEO) ---"] + slurm_log(ts))
 
     say("test_slurm annulé pendant l'attente en file (--begin=now+10minutes)")
     t0 = dispatch("main", hpc="true", sbatch_opts="--begin=now+10minutes")
