@@ -1,15 +1,31 @@
-Pull request https://github.com/orrnithogalum/mpiflow/pull/1
-runs créés pour le commit 753aa08 : 1 (pull_request)
-Run https://github.com/orrnithogalum/mpiflow/actions/runs/40192609955
-(pull_request, commit 753aa08) : failure
+Pull request https://github.com/orrnithogalum/mpiflow/pull/4
+runs créés pour le commit 08cb22b : 1 (pull_request)
+Run https://github.com/orrnithogalum/mpiflow/actions/runs/40207997530
+(pull_request, commit 08cb22b) : failure
   job              résultat     durée
-  lint             failure      22 s
-  build            failure      37 s
-  test             skipped      -
+  lint             failure      30 s
+  build            success      51 s
+  test             success      41 s
   registry_login   success      5 s
   package          skipped      -
   test_slurm       skipped      -
 
 --- job lint ---
+> Checking out the ref
+> Run sudo apt-get update -qq && sudo apt-get install -y -qq cppcheck
+Selecting previously unselected package cppcheck.
+Preparing to unpack .../cppcheck_2.13.0-2ubuntu3_amd64.deb ...
+Unpacking cppcheck (2.13.0-2ubuntu3) ...
+Setting up cppcheck (2.13.0-2ubuntu3) ...
+> Run cppcheck --enable=warning,style,performance,portability --std=c11 --error-exitcode=1 --inline-suppr --suppress=missingIncludeSystem tests/
+Checking tests/test_mpi.c ...
+tests/test_mpi.c:31:8: error: Array 'tab[4]' accessed at index 4, which is out of bounds. [arrayIndexOutOfBounds]
+    tab[4] = rank; /* erreur volontaire */
+tests/test_mpi.c:31:12: style: Variable 'tab[4]' is assigned a value that is never used. [unreadVariable]
+    tab[4] = rank; /* erreur volontaire */
+Error: Process completed with exit code 1.
 
 --- job registry_login (pull request) ---
+> Run echo "ref=${GITHUB_REF} événement=${GITHUB_EVENT_NAME}"
+ref=refs/pull/4/merge événement=pull_request
+FAKE_REGISTRY_TOKEN vide : secret non transmis à ce job

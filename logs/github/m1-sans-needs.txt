@@ -1,12 +1,21 @@
-Run https://github.com/orrnithogalum/mpiflow/actions/runs/40192505670
-(workflow_dispatch, test sans needs, commit 5e1fa08) : failure
+Run https://github.com/orrnithogalum/mpiflow/actions/runs/40207900009
+(workflow_dispatch, test sans needs, commit 0ed6612) : success
   job              résultat     durée
   lint             skipped      -
-  build            failure      70 s
-  test             failure      42 s
+  build            success      40 s
+  test             success      52 s
   registry_login   success      5 s
   package          skipped      -
   test_slurm       skipped      -
 
 --- job test ---
-  [failure] Process completed with exit code 100.
+Download action repository 'actions/download-artifact@v8' (SHA:9000827ccba6bdab643e8b6fd33ac0654aef8333)
+> Run actions/download-artifact@v8
+Downloading single artifact
+Preparing to download the following artifacts:
+Redirecting to blob download url: https://productionresultssa5.blob.core.windows.net/actions-results/c758c8b8-ae62-4efc-97ea-d22ee27b1ccf/workflow-job-run-c8c9fb4e-7b2a-50c1-b9a5-d4cb0d65f039/artifacts/44575cf5b28512d75644bf54a517dcef304ff809fd511747621b4d64f19aac66.zip
+Starting download of artifact to: /__w/mpiflow/mpiflow
+SHA256 digest of downloaded artifact is 0be48496f42c7a8f0f54ee92ac7d5cc903dfeb0d8a538ce7435d38a2a04bff6c
+Artifact download completed successfully.
+Total of 1 artifact(s) downloaded
+Download artifact has finished successfully
