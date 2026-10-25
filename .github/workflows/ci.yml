@@ -66,7 +66,11 @@ jobs:
     container: gcc:13-bookworm
     steps:
       - uses: actions/checkout@v7
-      - run: apt-get update -qq && apt-get install -y -qq cmake libopenmpi-dev openmpi-bin > /dev/null
+      # l'image détourne /usr/bin/gfortran (dpkg-divert) vers son gfortran 13 de /usr/local/bin :
+      # sans ce lien, le paquet gfortran tiré par libopenmpi-dev échoue (update-alternatives)
+      - run: |
+          ln -sf /usr/local/bin/gfortran /usr/bin/gfortran
+          apt-get update -qq && apt-get install -y -qq cmake libopenmpi-dev openmpi-bin > /dev/null
       - run: |
           cmake -B build -DCMAKE_BUILD_TYPE=Release -DMPIEXEC_PREFLAGS="--allow-run-as-root;--oversubscribe"
           cmake --build build -j"$(nproc)"
@@ -84,7 +88,9 @@ jobs:
     container: gcc:13-bookworm
     steps:
       - uses: actions/checkout@v7
-      - run: apt-get update -qq && apt-get install -y -qq cmake libopenmpi-dev openmpi-bin > /dev/null
+      - run: |                         # lien gfortran : voir le job build
+          ln -sf /usr/local/bin/gfortran /usr/bin/gfortran
+          apt-get update -qq && apt-get install -y -qq cmake libopenmpi-dev openmpi-bin > /dev/null
       - uses: actions/download-artifact@v8
         with:
           name: build

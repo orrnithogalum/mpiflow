@@ -118,7 +118,12 @@ def jobs_of(r):
 
 
 def log_of(job):
-    p = run(["gh", "api", f"repos/{R}/actions/jobs/{job['databaseId']}/logs"], check=False)
+    # gh >= 2.80 refuse d'afficher les séquences ANSI des logs sans --allow-escape-sequences
+    # (option inconnue des versions plus anciennes : on réessaie sans)
+    url = f"repos/{R}/actions/jobs/{job['databaseId']}/logs"
+    p = run(["gh", "api", "--allow-escape-sequences", url], check=False)
+    if p.returncode:
+        p = run(["gh", "api", url], check=False)
     out = []
     for line in p.stdout.replace("﻿", "").splitlines():
         line = re.sub(r"^\d{4}-\d\d-\d\dT[\d:.]+Z ?", "", line)
@@ -399,7 +404,7 @@ def hpc():
         if runs:
             rid = runs[0]["databaseId"]
             ts = next((j for j in jobs_of(runs[0]) if j["name"] == "test_slurm"), None)
-            step = next((s for s in (ts or {}).get("steps", []) if s["name"].startswith("Soumission")), None)
+            step = next((s for s in (ts or {}).get("steps", []) if "soumission" in s["name"]), None)
             if step and step["status"] == "in_progress":
                 break
         time.sleep(10)

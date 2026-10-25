@@ -5,6 +5,7 @@
 # partout : sur ROMEO, la partition, le projet et le type de nœud viennent des variables
 # SBATCH_PARTITION, SBATCH_ACCOUNT et SBATCH_CONSTRAINT (romeo/romeo.env), que sbatch fait
 # passer avant les lignes #SBATCH ci-dessous. Vérifier les partitions avec sinfo -s.
+# La mémoire est explicite : le filtre de soumission de ROMEO refuse un job sans --mem.
 #
 #SBATCH --job-name=ci-mpiflow
 #SBATCH --partition=debug
@@ -12,6 +13,7 @@
 #SBATCH --ntasks=8
 #SBATCH --ntasks-per-node=4
 #SBATCH --time=00:05:00
+#SBATCH --mem=1G
 #SBATCH --output=ci-%j.out
 
 set -o pipefail      # pas de -u : les fonctions de Spack utilisent des variables non définies

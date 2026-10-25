@@ -68,7 +68,7 @@ slurm)
     scen "un rang plante"
     rec m3-blocage "MPIFLOW_HANG_RANK=1 $POLL --time=00:01:00"
     scen "un rang bloqué"
-    rec m3-dependance "id=\$(sbatch --parsable -J ci-avant -N1 -n1 --time=00:02:00 --wrap 'sleep 45'); echo \"job \${id%%;*} soumis : le job du CI l'attend\"; $POLL --dependency=afterany:\${id%%;*}" \
+    rec m3-dependance "id=\$(sbatch --parsable -J ci-avant -N1 -n1 --mem=100M --time=00:02:00 --wrap 'sleep 45'); echo \"job \${id%%;*} soumis : le job du CI l'attend\"; $POLL --dependency=afterany:\${id%%;*}" \
         "sbatch --wrap 'sleep 45' ; ./slurm/submit_and_poll.sh slurm/job_ci.sh --dependency=afterany:<job>"
     scen "attente d'un autre job"
     rec m3-timeout-ci "timeout 40 env $POLL --begin=now+10minutes; echo \"poller arrêté (code \$?) : timeout du job CI simulé\"; id=\$(cut -d';' -f1 .slurm_jobid); squeue -j \$id; scancel \$id; sleep 5; sacct -X -j \$id -o JobID,JobName%12,State" \

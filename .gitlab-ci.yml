@@ -36,6 +36,9 @@ default:
 # ---------------------------------------------------------------- modèles -----
 .apt_mpi:
   before_script:
+    # l'image détourne /usr/bin/gfortran (dpkg-divert) vers son gfortran 13 de /usr/local/bin :
+    # sans ce lien, le paquet gfortran tiré par libopenmpi-dev échoue (update-alternatives)
+    - ln -sf /usr/local/bin/gfortran /usr/bin/gfortran
     - apt-get update -qq
     - apt-get install -y -qq cmake libopenmpi-dev openmpi-bin > /dev/null
 

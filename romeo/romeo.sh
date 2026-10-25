@@ -71,8 +71,8 @@ echo "\$ sinfo -s"
 sinfo -s
 echo "\$ sinfo -o '%P %l %D %f'   # partition, durée maximale, nœuds, types de nœuds"
 sinfo -h -o '%P %l %D %f' | sort -u
-echo "\$ sacctmgr show assoc user=\$USER format=account,partition,qos"
-sacctmgr -nP show assoc user="$USER" format=account,partition,qos 2> /dev/null | sort -u
+echo "\$ sacctmgr show assoc user=\$USER format=account,partition,qos,maxsubmit"
+sacctmgr -nP show assoc user="$USER" format=account,partition,qos,maxsubmit 2> /dev/null | sort -u
 echo "\$ srun --mpi=list"
 srun --mpi=list < /dev/null 2>&1 | tail -n 8
 _i=${ROMEO_ENV%% *}
@@ -92,8 +92,9 @@ fi
 EOF
 )" 2>&1 | tee logs/romeo/check.txt
 
-    # choix par défaut : premier projet, partition courte, nœuds x86 (modifiable dans romeo.env)
-    acc=$(sed -n '/sacctmgr show/,/srun --mpi/p' logs/romeo/check.txt | grep '|' | cut -d'|' -f1 | grep . | sort -u | head -1 || true)
+    # choix par défaut : premier projet autorisé à soumettre, partition courte, nœuds x86
+    # (modifiable dans romeo.env). Sur ROMEO, l'association « default » a MaxSubmit=0.
+    acc=$(sed -n '/sacctmgr show/,/srun --mpi/p' logs/romeo/check.txt | grep '|' | awk -F'|' '$4 != "0"' | cut -d'|' -f1 | grep . | sort -u | head -1 || true)
     parts=$(sed -n '/sinfo -o/,/sacctmgr show/p' logs/romeo/check.txt | grep -v '^\$' | awk '{print $1}')
     part=""
     for p in debug short instant test court; do
