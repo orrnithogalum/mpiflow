@@ -291,12 +291,16 @@ le nœud de chaque rang. Les vérifications renvoient un code d'erreur au lieu d
 à 1 et 4 rangs.
 
 Le workflow (listing~\ref{lst:m1-yaml}) enchaîne deux jobs dans l'image \code{gcc:13-bookworm},
-où CMake et Open MPI sont installés par \code{apt}. Le job \code{build} archive \fic{build/} avec
+où CMake et Open MPI sont installés par \code{apt}. L'image remplace le \code{gfortran} de Debian
+par le sien (\code{dpkg-divert} de \fic{/usr/bin/gfortran} vers \fic{/usr/local/bin}) : le paquet
+\code{gfortran}, tiré par \code{libopenmpi-dev}, échoue alors à sa configuration
+(\code{update-alternatives: alternative path /usr/bin/gfortran doesn't exist}) et tous les runs
+cassaient dès \code{apt-get} ; un lien symbolique posé avant l'installation suffit. Le job \code{build} archive \fic{build/} avec
 \code{tar}, car \code{upload-artifact} ne conserve pas le bit d'exécution, et le publie comme
 artefact ; le job \code{test}, relié par \code{needs: build}, le télécharge, lance \code{ctest}
 puis \code{mpirun -np 4 --allow-run-as-root --oversubscribe}.
 
-\preuve[language=yaml, linerange={63-66,69-78,80-81,84,87-92}, label=lst:m1-yaml]{.github/workflows/ci.yml}
+\preuve[language=yaml, linerange={63-66,69-82,84-85,88,91-98}, label=lst:m1-yaml]{.github/workflows/ci.yml}
   {Jobs \texttt{build} et \texttt{test}, extrait du workflow}
 
 \ifgithub
@@ -454,7 +458,7 @@ est rangé dans l'environnement \code{release}, que GitHub n'ouvre qu'aux tags \
 Le job \code{registry_login}, qui ne déclare pas d'environnement, montre ce qu'un job ordinaire
 voit du secret.
 
-\preuve[language=yaml, linerange={13-18,111-118}, label=lst:m2-yaml]{.github/workflows/ci.yml}
+\preuve[language=yaml, linerange={13-18,117-124}, label=lst:m2-yaml]{.github/workflows/ci.yml}
   {Déclencheurs et en-tête du job \texttt{package}, extrait du workflow}
 
 \ifghdemo
@@ -571,13 +575,23 @@ Le job Slurm \fic{slurm/job_ci.sh} demande, comme le sujet, 2 nœuds et 8 tâche
 pour cinq minutes. La partition \code{debug} n'existe pas sur ROMEO : la partition, le projet et
 le type de nœud (\code{x64cpu}) viennent des variables \code{SBATCH_PARTITION},
 \code{SBATCH_ACCOUNT} et \code{SBATCH_CONSTRAINT}, que \code{sbatch} fait passer avant les lignes
-\code{#SBATCH} ; \fic{romeo/romeo.sh check} les choisit d'après \code{sinfo} et \code{sacctmgr}.
+\code{#SBATCH} ; \fic{romeo/romeo.sh check} les choisit d'après \code{sinfo} et \code{sacctmgr},
+en écartant l'association \code{default}, dont \code{MaxSubmit} vaut 0. Le filtre de soumission
+de ROMEO refuse aussi tout job sans mémoire explicite, d'où \code{#SBATCH --mem=1G} ; sans elle,
+\code{sbatch} ne répond que \code{Batch job submission failed: Unspecified error}.
 ROMEO n'a pas de modules : les logiciels passent par l'installation Spack partagée, accessible
 après \code{romeo_load_x64cpu_env}. Comme le sujet le prévoit en l'absence de Lmod, le script
 initialise donc lui-même l'environnement (\fic{slurm/env.sh}) : il appelle cette commande puis
 active l'environnement Spack dédié du dépôt. Il lance ensuite
 \code{srun --mpi=pmix --kill-on-bad-exit=1} avec \code{EXPECTED_RANKS} égal au nombre de tâches,
 et se termine par \code{SUCCESS} ou \code{FAILED}.
+\ifromeo
+Sur ROMEO, le premier essai échoue en 5~s : le plugin \code{mpi/pmix} de Slurm ne trouve pas
+la bibliothèque PMIx sur les nœuds de calcul (\code{can not load PMIx library},
+\fic{logs/romeo/m3-succes.txt}). Le script se rabat alors sur \code{mpirun} dans l'allocation
+(\code{MPI_LAUNCHER=mpirun}), qui démarre ses propres démons sur les nœuds alloués ; lanceur
+retenu pour la suite et pour le CI : \texttt{\mpilauncher}.
+\fi
 
 Le script \fic{slurm/submit_and_poll.sh} soumet le job par \code{sbatch --parsable} et garde son
 identifiant dans \fic{.slurm_jobid}. Il interroge ensuite \code{sacct -X}, avec un repli sur
@@ -602,7 +616,7 @@ MPI de l'installation partagée, puis soumet et suit le job, le tout par SSH
 ainsi le temps d'appeler \code{scancel}, et les sorties du job sont rapatriées et archivées dans
 tous les cas, comme avec \code{artifacts: when: always}.
 
-\preuve[language=yaml, linerange={146-147,151-153,156-158,164-178}, label=lst:m3-yaml]{.github/workflows/ci.yml}
+\preuve[language=yaml, linerange={152-153,157-159,162-164,170-184}, label=lst:m3-yaml]{.github/workflows/ci.yml}
   {Job \texttt{test\_slurm}, extrait du workflow}
 
 GitHub Actions n'a pas d'équivalent de \code{retry:}. Sur GitLab, \code{retry: when:
@@ -622,8 +636,11 @@ qu'il n'y a rien à annuler.
 exécuté depuis GitHub sur ROMEO}}{%
 Le cas nominal est donné par le listing~\ref{lst:m3-run} : huit rangs sur deux nœuds,
 \code{ExitCode 0:0}, ligne \code{SUCCESS}.
+\IfFileExists{logs/extraits/romeo-m3-succes-mpirun.txt}{%
+\preuve[label=lst:m3-run]{logs/extraits/romeo-m3-succes-mpirun.txt}{Soumission et suivi sur ROMEO,
+lancement par \texttt{mpirun}}}{%
 \preuveou[label=lst:m3-run]{logs/extraits/romeo-m3-succes.txt}{Soumission et suivi sur ROMEO}
-  [label=lst:m3-run]{logs/m3-poll-4-success.txt}{Soumission et suivi sur le mini-cluster local}}
+  [label=lst:m3-run]{logs/m3-poll-4-success.txt}{Soumission et suivi sur le mini-cluster local}}}
 
 \begin{figtexte}
 \begin{minipage}{\linewidth}\setlength{\parindent}{1.5em}\noindent\hspace*{1.5em}%
