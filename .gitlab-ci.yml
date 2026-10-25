@@ -127,7 +127,7 @@ registry_login:
 # ======================================================= Mission 3 ============
 # Runner « shell » installé sur le nœud de connexion du cluster (tag hpc-login) :
 # il n'ouvre aucune connexion entrante (il interroge GitLab en HTTPS) et partage
-# /home (NFS) avec les nœuds de calcul. Il orchestre ; le calcul passe par Slurm.
+# /shared (NFS) avec les nœuds de calcul. Il orchestre ; le calcul passe par Slurm.
 .hpc:
   stage: test_hpc
   tags: [hpc-login]
@@ -144,11 +144,7 @@ registry_login:
   before_script:
     # environnement installé une fois sur le nœud de connexion (store Spack partagé) :
     # ici « spack install » ne recompile rien, il (re)crée seulement la vue du dépôt
-    - source "${SPACK_ROOT:-$HOME/spack}/share/spack/setup-env.sh"
-    - spack -e spack/ install --fail-fast
-    - spack env activate -d spack/
-    - cmake -B build-hpc -DCMAKE_BUILD_TYPE=Release
-    - cmake --build build-hpc -j4
+    - bash slurm/build_hpc.sh
   after_script:
     # exécuté aussi si le job est annulé ou coupé : pas de job Slurm orphelin
     - |

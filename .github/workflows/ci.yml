@@ -1,20 +1,57 @@
-# Équivalent GitHub Actions du .gitlab-ci.yml (Missions 1 et 2)
+# Pipeline GitHub Actions du projet mpiflow (M2 CHPS, CHPS0902, Cours 6)
+#
+#   Mission 1 : build -> test (artefact + needs)
+#   Mission 2 : lint (pull requests), package (tags vX.Y.Z), secret via --password-stdin
+#   Mission 3 : test_slurm sur le runner auto-hébergé « hpc-login » (cluster de deux VM)
+#
+# Réglages du dépôt (posés par scripts/github_evidence.py et cluster/gcp.sh) :
+#   secret FAKE_REGISTRY_TOKEN   fausse valeur, dans l'environnement « release »
+#                                (limité aux tags v*) ou, à défaut, au niveau du dépôt
+#   variable HPC_ENABLED=true    tant que le runner hpc-login existe
 name: CI
 
 on:
   push:
-    branches: ["**"]
-    tags: ["v*.*.*"]
+    branches: [main]
+    tags: ['v[0-9]+.[0-9]+.[0-9]+']    # vX.Y.Z seulement : v1.2.3-rc1 ne déclenche rien
   pull_request:
+    branches: [main]
+  schedule:
+    - cron: '17 1 * * *'               # nightly, 2 h 17 à Paris (heure d'hiver)
+  workflow_dispatch:
+    inputs:
+      hpc:
+        description: Lancer test_slurm sur le cluster
+        type: boolean
+        default: true
+      methode:
+        description: Suivi du job Slurm
+        type: choice
+        options: [polling, wait]
+        default: polling
+      sbatch_opts:
+        description: Options sbatch supplémentaires
+        type: string
+        default: ''
+      publier:
+        description: Forcer le job package hors tag (démonstration de la protection)
+        type: boolean
+        default: false
+
+defaults:
+  run:
+    shell: bash                        # bash -e -o pipefail
 
 env:
   DEBIAN_FRONTEND: noninteractive
+  # Open MPI dans un conteneur : ptrace entre processus interdit -> pas de copie CMA
   OMPI_MCA_btl_vader_single_copy_mechanism: none
 
 jobs:
-  lint:                                  # ~ rules: merge_request_event
+  # ===================================================== Mission 2 : lint ======
+  lint:
     if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
       - run: sudo apt-get update -qq && sudo apt-get install -y -qq cppcheck
@@ -22,16 +59,17 @@ jobs:
           cppcheck --enable=warning,style,performance,portability --std=c11
           --error-exitcode=1 --inline-suppr --suppress=missingIncludeSystem tests/
 
+  # ===================================================== Mission 1 =============
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     container: gcc:13-bookworm
     steps:
       - uses: actions/checkout@v7
-      - run: apt-get update -qq && apt-get install -y -qq cmake libopenmpi-dev openmpi-bin
+      - run: apt-get update -qq && apt-get install -y -qq cmake libopenmpi-dev openmpi-bin > /dev/null
       - run: |
           cmake -B build -DCMAKE_BUILD_TYPE=Release -DMPIEXEC_PREFLAGS="--allow-run-as-root;--oversubscribe"
           cmake --build build -j"$(nproc)"
-      # upload-artifact ne conserve pas les permissions (bit x perdu) : on archive en tar
+      # upload-artifact ne conserve pas les permissions (bit x perdu) : archive tar
       - run: tar -cf build.tar build
       - uses: actions/upload-artifact@v7
         with:
@@ -40,12 +78,12 @@ jobs:
           retention-days: 7
 
   test:
-    needs: build                         # obligatoire : sans needs, les jobs tournent en parallèle
-    runs-on: ubuntu-latest
+    needs: build                       # mission 1 : sans needs, test démarre en même temps que build
+    runs-on: ubuntu-24.04
     container: gcc:13-bookworm
     steps:
       - uses: actions/checkout@v7
-      - run: apt-get update -qq && apt-get install -y -qq cmake libopenmpi-dev openmpi-bin
+      - run: apt-get update -qq && apt-get install -y -qq cmake libopenmpi-dev openmpi-bin > /dev/null
       - uses: actions/download-artifact@v8
         with:
           name: build
@@ -53,21 +91,36 @@ jobs:
       - run: cd build && ctest --output-on-failure
       - run: mpirun --allow-run-as-root --oversubscribe -np 4 build/tests/test_mpi
 
+  # ===================================================== Mission 2 : secret ====
+  registry_login:                      # le secret est-il visible hors de l'environnement release ?
+    runs-on: ubuntu-24.04
+    env:
+      FAKE_REGISTRY_TOKEN: ${{ secrets.FAKE_REGISTRY_TOKEN }}
+    steps:
+      - uses: actions/checkout@v7
+      - run: |
+          echo "ref=${GITHUB_REF} événement=${GITHUB_EVENT_NAME}"
+          if [ -z "${FAKE_REGISTRY_TOKEN}" ]; then
+            echo "FAKE_REGISTRY_TOKEN vide : secret non transmis à ce job"
+            exit 0
+          fi
+          echo "test de masquage : ${FAKE_REGISTRY_TOKEN}"
+          echo "${FAKE_REGISTRY_TOKEN}" | ./scripts/fake_docker_login.sh -u ci-user --password-stdin ghcr.io
+
+  # ===================================================== Mission 2 : package ===
   package:
     needs: [build, test]
-    if: startsWith(github.ref, 'refs/tags/v')
-    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v') || inputs.publier
+    runs-on: ubuntu-24.04
+    environment: release               # secret protégé : uniquement pour les tags v*
     env:
       TAG: ${{ github.ref_name }}
-      FAKE_REGISTRY_TOKEN: ${{ secrets.FAKE_REGISTRY_TOKEN }}   # Settings > Secrets
+      FAKE_REGISTRY_TOKEN: ${{ secrets.FAKE_REGISTRY_TOKEN }}
     steps:
       - uses: actions/checkout@v7
       - uses: actions/download-artifact@v8
         with:
           name: build
-      - name: Vérifier le format vX.Y.Z (le filtre de tags est un glob, pas une regex)
-        run: '[[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]'
-        shell: bash
       - run: |
           tar -xf build.tar
           PKG="mpiflow-${TAG}-linux-x86_64"
@@ -76,10 +129,65 @@ jobs:
             "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" > "dist/$PKG/BUILDINFO.txt"
           tar -C dist -czf "dist/$PKG.tar.gz" "$PKG"
           cd dist && sha256sum "$PKG.tar.gz" | tee checksums.txt
-      - run: echo "$FAKE_REGISTRY_TOKEN" | ./scripts/fake_docker_login.sh -u ci-user --password-stdin ghcr.io
+      - run: |
+          echo "test de masquage : ${FAKE_REGISTRY_TOKEN}"
+          echo "${FAKE_REGISTRY_TOKEN}" | ./scripts/fake_docker_login.sh -u ci-user --password-stdin ghcr.io
       - uses: actions/upload-artifact@v7
         with:
           name: package
           path: |
             dist/*.tar.gz
             dist/checksums.txt
+
+  # ===================================================== Mission 3 =============
+  test_slurm:
+    needs: test                        # pas de cluster si les tests unitaires échouent
+    if: >-
+      vars.HPC_ENABLED == 'true' &&
+      (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.hpc))
+    runs-on: [self-hosted, hpc-login]  # runner installé sur le nœud de connexion
+    timeout-minutes: 30                # le wall-time Slurm ne compte pas l'attente en file
+    env:
+      POLL_INTERVAL: 10
+      MPI_LAUNCHER: ${{ vars.MPI_LAUNCHER || 'srun' }}
+      METHODE: ${{ inputs.methode || 'polling' }}
+      SBATCH_OPTS: ${{ inputs.sbatch_opts }}
+    steps:
+      - uses: actions/checkout@v7
+      - name: Environnement Spack (spack.lock) et compilation avec le MPI du cluster
+        run: bash slurm/build_hpc.sh
+      - name: Soumission Slurm et suivi
+        timeout-minutes: 25            # < timeout du job : l'étape de nettoyage a le temps de tourner
+        run: |
+          read -ra opts <<< "$SBATCH_OPTS"
+          if [ "$METHODE" = wait ]; then
+            set +e
+            sbatch --wait --parsable "${opts[@]}" slurm/job_ci.sh > .slurm_jobid
+            rc=$?
+            cat "ci-$(cut -d';' -f1 .slurm_jobid).out"
+            exit "$rc"
+          fi
+          # polling ; une seule relance, et seulement pour un échec d'infrastructure (code 75)
+          ./slurm/submit_and_poll.sh slurm/job_ci.sh "${opts[@]}" && exit 0 || rc=$?
+          [ "$rc" -eq 75 ] || exit "$rc"
+          echo "::warning::échec d'infrastructure, nouvelle soumission"
+          ./slurm/submit_and_poll.sh slurm/job_ci.sh "${opts[@]}"
+      - name: Annuler le job Slurm s'il est encore dans la file
+        if: always()                   # aussi après annulation ou dépassement du timeout
+        run: |
+          [ -s .slurm_jobid ] || exit 0
+          id="$(cut -d';' -f1 .slurm_jobid)"
+          if [ -n "$(squeue -h -j "$id" 2>/dev/null)" ]; then
+            echo "job $id encore présent : scancel"
+            scancel "$id"
+          else
+            echo "job $id terminé, rien à annuler"
+          fi
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: slurm-logs
+          path: |
+            ci-*.out
+            sacct-*.txt
+          if-no-files-found: ignore
