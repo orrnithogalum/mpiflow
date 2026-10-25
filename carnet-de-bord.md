@@ -34,6 +34,7 @@ Le workflow (listing 1) enchaîne deux jobs dans l’image `gcc:13-bookworm`, o�
       build:
         runs-on: ubuntu-24.04
         container: gcc:13-bookworm
+        steps:
           - run: |
               cmake -B build -DCMAKE_BUILD_TYPE=Release -DMPIEXEC_PREFLAGS="--allow-run-as-root;--oversubscribe"
               cmake --build build -j"$(nproc)"
@@ -46,6 +47,7 @@ Le workflow (listing 1) enchaîne deux jobs dans l’image `gcc:13-bookworm`, o�
               retention-days: 7
       test:
         needs: build                       # mission 1 : sans needs, test démarre en même temps que build
+        steps:
           - uses: actions/download-artifact@v8
             with:
               name: build
@@ -88,7 +90,7 @@ La figure 2 récapitule les runs des missions 1 à 3, une ligne par événement 
 
 ### 3.2.1 Deux jobs d’un même stage échouent : le pipeline continue-t-il, et pourquoi est-ce souhaitable ?
 
-Les jobs d’un même stage sont indépendants : chacun va au bout, mais le stage suivant ne démarre pas. Nous l’avons vérifié sur GitLab avec trois builds parallèles dont deux échouent : le second échec arrive deux secondes après le premier, le stage `test` n’est jamais lancé et seul un job déclaré `when: on_failure` s’exécute (`logs/m1-stage-fail.txt`). GitHub Actions n’a pas de stages, mais des jobs sans dépendance entre eux jouent le même rôle. Sur la pull request où `lint` et `build` échouent ensemble (figure 2, quatrième ligne), les deux vont au bout, `registry_login` aussi, et `test`, qui dépend de `build`, n’est pas exécuté. Seules des exceptions explicites lèvent ce blocage : `allow_failure` ou `when: always` sur GitLab, `continue-on-error` ou `if: always()` sur GitHub.
+Les jobs d’un même stage sont indépendants : chacun va au bout, mais le stage suivant ne démarre pas. Nous l’avons vérifié avec l’émulateur de GitLab, sur trois builds parallèles dont deux échouent : le second échec arrive deux secondes après le premier, le stage `test` n’est jamais lancé et seul un job déclaré `when: on_failure` s’exécute (`logs/m1-stage-fail.txt`). GitHub Actions n’a pas de stages, mais des jobs sans dépendance entre eux jouent le même rôle. Sur la pull request où `lint` et `build` échouent ensemble (figure 2, quatrième ligne), les deux vont au bout, `registry_login` aussi, et `test`, qui dépend de `build`, n’est pas exécuté. Seules des exceptions explicites lèvent ce blocage : `allow_failure` ou `when: always` sur GitLab, `continue-on-error` ou `if: always()` sur GitHub.
 
 Ce comportement est souhaitable parce qu’il fait échouer tôt : tester ou empaqueter un binaire qui n’a pas compilé n’a pas de sens, et en HPC l’étape suivante coûte de l’attente en file et des heures de calcul. Il empêche aussi de publier un artefact non validé, ce qui explique que `package` dépende de `build` et de `test`, et non de `build` seul. Enfin, laisser aller au bout les jobs indépendants rassemble toutes les causes d’échec, ici l’analyse statique et la compilation, dans un seul run.
 
@@ -211,7 +213,7 @@ Localement, `cppcheck` échoue avec le code 1 sur une branche contenant une éc
 
 ## 4.2 Questions de cadrage
 
-### 4.2.1 rules: ou only:/except: : lequel écrire aujourd’hui, et où retrouver l’autre ?
+### 4.2.1 `rules` ou `only`/`except` : lequel écrire aujourd’hui, et où retrouver l’autre ?
 
 Il faut écrire `rules:`. La documentation de GitLab range `only` et `except` parmi les mots-clés dépréciés et renvoie vers `rules`. On les retrouve dans les dépôts et les gabarits anciens, comme le pipeline « hérité » des diapositives : il faut savoir les lire et les traduire, `only: merge_requests` devenant `if: $CI_PIPELINE_SOURCE == "merge_request_event"`. Les deux styles ne se combinent pas dans un même job : le validateur de GitLab rejette la configuration (`key may not be used with rules`).
 
@@ -273,6 +275,7 @@ Le job `test_slurm` (listing 9) s’exécute sur le runner `hpc-login` après `t
             run: bash slurm/build_hpc.sh
           - name: Soumission Slurm et suivi
             timeout-minutes: 25            # < timeout du job : l'étape de nettoyage a le temps de tourner
+            run: |
               # polling ; une seule relance, et seulement pour un échec d'infrastructure (code 75)
               ./slurm/submit_and_poll.sh slurm/job_ci.sh "${opts[@]}" && exit 0 || rc=$?
               [ "$rc" -eq 75 ] || exit "$rc"
@@ -314,8 +317,6 @@ Le cas nominal est donné par le listing 10 : quatre rangs sur deux nœuds, `Exi
     [code retour : 0]
 
 *Listing 10. Soumission et suivi sur le mini-cluster local (`logs/m3-poll-4-success.txt`)*
-
-Pour éprouver le pipeline, `cluster/evidence.sh` rejoue ensuite les situations qu’un nightly doit savoir traiter ; la figure 4 les place sur une même échelle de temps.
 
 ![image](figures/figure-4.png)
 
@@ -481,7 +482,7 @@ Le début de la concrétisation (listing 14) montre les specs à construire (`-`
 
 Dans `package@version%compiler+variant~variant`, `@` fixe une version ou un intervalle (`@1.14.6`, `@1.14:`), `%` le compilateur, `+` active un variant booléen et `~` le désactive ; `clé=valeur` règle un variant à valeurs (`schedulers=slurm`) et `^` contraint une dépendance (`^openmpi@5`). Depuis Spack 1.0, le compilateur est une dépendance comme une autre, ce que montre la notation `%c,cxx=gcc@13.3.0` des sorties.
 
-La spec demandée s’écrit `hdf5+mpi+fortran~cxx %gcc`, ou, entièrement figée, `hdf5@1.14.6+mpi+fortran~cxx %gcc@13.3.0 ^openmpi@5.0.10`. `spack spec` confirme qu’elle est comprise (listing 15). D’après `spack info hdf5`, `cxx` est déjà désactivé et `mpi` activé par défaut : les écrire protège tout de même la spec contre un changement de valeur par défaut dans une future version de la recette.
+La spec de HDF5 demandée s’écrit `hdf5+mpi+fortran~cxx %gcc`, et `spack spec` confirme qu’elle est comprise (listing 15). D’après `spack info hdf5`, `cxx` est déjà désactivé et `mpi` activé par défaut : les écrire protège tout de même la spec contre un changement de valeur par défaut dans une future version de la recette. Entièrement figée, elle devient `hdf5@1.14.6+mpi+fortran~cxx %gcc@13.3.0 ^openmpi@5.0.10`.
 
     $ spack spec hdf5+mpi+fortran~cxx %gcc@13.3.0   # (extrait)
      -   hdf5@1.14.6~cxx+fortran~hl~ipo~java~map+mpi+shared~subfiling~szip~threadsafe+tools api=default build_type=R
@@ -504,9 +505,7 @@ Un job CI part d’un environnement vierge : `spack install` y recompilerait les
 
 ## 6.3 Erreurs rencontrées et résolution
 
-Au premier `spack spec`, Spack n’a pas pu télécharger son solveur `clingo`, le réseau de notre poste bloquant le registre où il est publié ; un `pip install clingo` a suffi, Spack utilisant un clingo importable par son Python.
-
-La première concrétisation comptait 76 paquets à construire, dont un Slurm complet avec Python et GLib : `schedulers=slurm` ajoute Slurm comme dépendance. Déclaré externe et non constructible, celui du système ramène le total à 46. La commande `spack external find`, qui a servi à le déclarer, a effacé les commentaires de `spack.yaml`, réécrit ensuite à la main.
+Au premier `spack spec`, Spack n’a pas pu télécharger son solveur `clingo`, bloqué par le réseau de notre poste ; un `pip install clingo` a suffi. La première concrétisation comptait ensuite 76 paquets à construire, dont un Slurm complet, car `schedulers=slurm` ajoute Slurm comme dépendance : déclaré externe et non constructible, celui du système ramène le total à 46. La commande `spack external find`, utilisée pour le déclarer, a au passage effacé les commentaires de `spack.yaml`, réécrit à la main.
 
 Concrétisé sans précaution, l’environnement visait la micro-architecture `icelake` de notre poste et n’aurait pas tourné sur toutes les VM `e2` ; `target: [x86_64_v3]` règle la question pour tous les paquets.
 
@@ -516,7 +515,7 @@ L’environnement est concrétisé avec une cible portable et Slurm externe, ver
 
 # 7 Conclusion et auto-diagnostic
 
-La séance répond à la question qui la sous-tend : un pipeline HPC ne se contente pas de transposer le CI du cloud. Les tests rapides tournent sur des runners partagés, mais ce qu’ils valident s’arrête à la logique du code. L’intégration avec le MPI, le lanceur et le réseau du cluster passe par Slurm, avec deux horloges à gérer, des jobs orphelins à annuler et des échecs à classer avant de relancer. Spack apporte la pièce manquante, un environnement versionné à côté du code. Plusieurs réponses sont sorties nuancées de l’expérience : oublier `needs` ne casse pas un pipeline GitLab, le test des diapositives passe toujours en `Release`, et un rang bloqué ne fait pas échouer un job Slurm avant le wall-time.
+La séance répond à la question qui la sous-tend : un pipeline HPC ne se contente pas de transposer le CI du cloud. Les runners partagés valident la logique du code ; l’intégration avec le MPI, le lanceur et le réseau du cluster passe par Slurm, avec deux horloges à gérer, des jobs orphelins à annuler et des échecs à classer avant de relancer ; Spack fournit enfin l’environnement versionné qui rend ces exécutions reproductibles.
 
 ## 7.1 Acquis
 
@@ -530,7 +529,7 @@ Trois points restent à approfondir : le buildcache de Spack en pratique (public
 
 Prenons un code de segmentation 3D, parallélisé avec MPI ou sur GPU, appliqué à des volumes IRM ou scanner. À chaque push, le CI lancerait l’analyse statique, les tests unitaires et un test de bout en bout sur un petit fantôme synthétique, dans un conteneur. Chaque nuit, un job Slurm segmenterait un jeu de référence ; le test comparerait le coefficient de Dice à une segmentation de référence avec une tolérance plutôt qu’une égalité bit à bit, car les réductions parallèles ne sont pas déterministes au bit près. Chaque résultat serait archivé avec le commit, le hash du `spack.lock` (ITK, VTK, HDF5), l’identifiant du job Slurm et les sommes SHA-256 des volumes produits, ce qui permet de rejouer une figure de publication.
 
-Les données de santé imposent une contrainte supplémentaire : aucune donnée de patient ne doit apparaître dans les artefacts, les logs ou les caches du CI. Seules des données anonymisées ou synthétiques y circulent, l’accès au stockage passe par un secret protégé, et les jobs sur données réelles ne s’exécutent que sur le cluster habilité, par un runner réservé au dépôt du projet.
+Aucune donnée de patient ne doit en revanche apparaître dans les artefacts, les logs ou les caches du CI : seules des données anonymisées ou synthétiques y circulent, l’accès au stockage passe par un secret protégé, et les jobs sur données réelles ne tournent que sur le cluster habilité, par un runner réservé au dépôt du projet.
 
 # Références
 

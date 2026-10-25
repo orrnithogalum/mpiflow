@@ -28,6 +28,7 @@
 \usepackage[babel]{csquotes}
 \usepackage[a4paper,margin=2.5cm]{geometry}
 \usepackage{microtype}
+\SetProtrusion{encoding=T1,family=pcr}{-={0,0}}
 \usepackage{amssymb}
 \usepackage[dvipsnames]{xcolor}
 \usepackage{enumitem}
@@ -285,7 +286,7 @@ où CMake et Open MPI sont installés par \code{apt}. Le job \code{build} archiv
 artefact ; le job \code{test}, relié par \code{needs: build}, le télécharge, lance \code{ctest}
 puis \code{mpirun -np 4 --allow-run-as-root --oversubscribe}.
 
-\preuve[language=yaml, linerange={63-65,69-78,80-81,87-92}, label=lst:m1-yaml]{.github/workflows/ci.yml}
+\preuve[language=yaml, linerange={63-66,69-78,80-81,84,87-92}, label=lst:m1-yaml]{.github/workflows/ci.yml}
   {Jobs \texttt{build} et \texttt{test}, extrait du workflow}
 
 \ifgithub
@@ -313,9 +314,10 @@ aux lignes de cette figure.
 \subsubsection{Deux jobs d'un même stage échouent : le pipeline continue-t-il, et pourquoi est-ce souhaitable ?}
 
 Les jobs d'un même stage sont indépendants : chacun va au bout, mais le stage suivant ne démarre
-pas. Nous l'avons vérifié sur GitLab avec trois builds parallèles dont deux échouent : le second
-échec arrive deux secondes après le premier, le stage \code{test} n'est jamais lancé et seul un
-job déclaré \code{when: on_failure} s'exécute (\fic{logs/m1-stage-fail.txt}). GitHub Actions n'a
+pas. Nous l'avons vérifié avec l'émulateur de GitLab, sur trois builds parallèles dont deux
+échouent : le second échec arrive deux secondes après le premier, le stage \code{test} n'est
+jamais lancé et seul un job déclaré \code{when: on_failure} s'exécute
+(\fic{logs/m1-stage-fail.txt}). GitHub Actions n'a
 pas de stages, mais des jobs sans dépendance entre eux jouent le même rôle. Sur la pull request
 où \code{lint} et \code{build} échouent ensemble (figure~\ref{fig:runs}, quatrième ligne), les deux
 vont au bout, \code{registry_login} aussi, et \code{test}, qui dépend de \code{build}, n'est pas
@@ -464,7 +466,7 @@ contenu et la somme de contrôle se vérifient (listing~\ref{lst:m2-tag}).
 
 \subsection{Questions de cadrage}
 
-\subsubsection{rules: ou only:/except: : lequel écrire aujourd'hui, et où retrouver l'autre ?}
+\subsubsection{\texttt{rules} ou \texttt{only}/\texttt{except} : lequel écrire aujourd'hui, et où retrouver l'autre ?}
 
 Il faut écrire \code{rules:}. La documentation de GitLab range \code{only} et \code{except} parmi
 les mots-clés dépréciés et renvoie vers \code{rules}. On les retrouve dans les dépôts et les
@@ -576,7 +578,7 @@ job (30~min) dépasse celui de l'étape de soumission (25~min), ce qui laisse à
 nettoyage, exécutée même après une annulation (\code{if: always()}), le temps d'annuler le job
 Slurm ; les logs sont archivés dans tous les cas, comme avec \code{artifacts: when: always}.
 
-\preuve[language=yaml, linerange={143-160,170-176}, label=lst:m3-yaml]{.github/workflows/ci.yml}
+\preuve[language=yaml, linerange={143-161,170-176}, label=lst:m3-yaml]{.github/workflows/ci.yml}
   {Job \texttt{test\_slurm}, extrait du workflow}
 
 GitHub Actions n'a pas d'équivalent de \code{retry:}. Sur GitLab, \code{retry: when:

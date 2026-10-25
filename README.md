@@ -24,7 +24,8 @@ cd build && ctest --output-on-failure
 
 ## Rejouer les preuves (GitHub et deux VM GCP)
 
-Prérequis sur votre poste : `git`, `gh` connecté (`gh auth login`), `gcloud` connecté au
+Prérequis sur votre poste : `git`, `gh` connecté avec le droit de pousser des workflows
+(`gh auth login -s workflow`), `gcloud` connecté au
 projet (`gcloud auth login`, `gcloud config set project <id>`), et pour la dernière étape
 TeX Live (`latexmk`) et `pandoc`.
 

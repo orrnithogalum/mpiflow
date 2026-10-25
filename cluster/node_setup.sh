@@ -102,12 +102,17 @@ else
 fi
 
 # --- 5. slurm.conf, identique sur les deux nœuds ---------------------------------------
-# matériel décrit par slurmd -C (les deux VM ont le même type), mémoire arrondie par défaut
-HW=$(slurmd -C | head -1 | sed -E 's/^NodeName=[^ ]+ //; s/ UpTime=.*//')
-MEM=$(sed -E 's/.*RealMemory=([0-9]+).*/\1/' <<< "$HW")
-HW=$(sed -E "s/RealMemory=[0-9]+/RealMemory=$((MEM * 90 / 100))/" <<< "$HW")
+# Écrit par le contrôleur, puis recopié via /shared par le nœud de calcul. Matériel décrit
+# par slurmd -C (les deux VM ont le même type), mémoire arrondie par défaut.
 install -d -o slurm -g slurm /var/spool/slurmctld /var/log/slurm
 install -d /var/spool/slurmd
+if [ "$ROLE" = compute ] && [ -s "$SHARED/slurm.conf" ]; then
+    install -m 644 "$SHARED/slurm.conf" /etc/slurm/slurm.conf
+else
+HW=$(slurmd -C | head -1 | sed -E 's/^NodeName=[^ ]+ //; s/ UpTime=.*//')
+MEM=$(sed -E 's/.*RealMemory=([0-9]+).*/\1/' <<< "$HW")
+MEM=$((MEM * 90 / 100)); MEM=$((MEM - MEM % 100))    # 90 %, arrondi à 100 Mo
+HW=$(sed -E "s/RealMemory=[0-9]+/RealMemory=${MEM}/" <<< "$HW")
 cat > /etc/slurm/slurm.conf <<EOF
 # slurm.conf -- mini-cluster mpiflow : deux VM GCP (généré par cluster/node_setup.sh)
 ClusterName=mpiflow
@@ -142,6 +147,8 @@ NodeName=${CTL},${NODE} ${HW} State=UNKNOWN
 PartitionName=debug Nodes=ALL Default=YES MaxTime=00:30:00 State=UP
 EOF
 chmod 644 /etc/slurm/slurm.conf
+if [ "$ROLE" = controller ]; then install -m 644 /etc/slurm/slurm.conf "$SHARED/slurm.conf"; fi
+fi
 
 # --- 6. Contrôleur : comptabilité puis ordonnanceur --------------------------------------
 if [ "$ROLE" = controller ]; then

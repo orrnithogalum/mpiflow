@@ -19,10 +19,10 @@ if [ ! -x "$DIR/config.sh" ]; then
     install -d -o ci -g ci "$DIR"
     curl -fsSL "https://github.com/actions/runner/releases/download/v${VER}/actions-runner-linux-x64-${VER}.tar.gz" \
         | runuser -u ci -- tar -xz -C "$DIR"
-    "$DIR/bin/installdependencies.sh" > /dev/null
+    "$DIR/bin/installdependencies.sh" > /dev/null || echo "installdependencies.sh a échoué : vérifier libicu (apt-get install libicu74)"
 fi
 cd "$DIR"
-if ls actions.runner.*.service > /dev/null 2>&1; then      # relance : on réenregistre
+if [ -f .service ]; then                                   # relance : on réenregistre
     ./svc.sh stop > /dev/null 2>&1 || true
     ./svc.sh uninstall > /dev/null 2>&1 || true
 fi

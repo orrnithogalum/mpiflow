@@ -174,8 +174,12 @@ def dispatch(ref, **inputs):
 
 # ------------------------------------------------------------------ étapes ----
 def preflight():
-    if run(["gh", "auth", "status"], check=False).returncode:
-        sys.exit("gh n'est pas connecté : lancer « gh auth login ».")
+    st = run(["gh", "auth", "status"], check=False)
+    if st.returncode:
+        sys.exit("gh n'est pas connecté : lancer « gh auth login -s workflow ».")
+    scopes = re.search(r"Token scopes: (.*)", st.stdout + st.stderr)
+    if scopes and "workflow" not in scopes.group(1):
+        sys.exit("Le jeton de gh ne peut pas pousser de workflow : lancer « gh auth refresh -s workflow ».")
     if git("status", "--porcelain", "--untracked-files=no"):
         sys.exit("Commiter ou mettre de côté les modifications en cours avant de lancer le script.")
     if git("branch", "--show-current") != "main":

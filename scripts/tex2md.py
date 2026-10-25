@@ -187,8 +187,8 @@ def read_lines(path, opts):
     if lr:
         keep = []
         for part in lr.group(1).split(","):
-            a, b = part.split("-")
-            keep += lines[int(a) - 1:int(b)]
+            a, _, b = part.partition("-")
+            keep += lines[int(a) - 1:int(b or a)]
         return keep
     return lines[(int(fl.group(1)) - 1 if fl else 0):(int(ll.group(1)) if ll else None)]
 

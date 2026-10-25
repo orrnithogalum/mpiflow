@@ -77,7 +77,10 @@ setup)
     on "$NODE" "sudo bash /tmp/node_setup.sh compute $LOGIN $NODE"
     say "Copie du dépôt dans $REMOTE et vérification"
     push_repo
-    on "$LOGIN" "sudo -u ci bash -lc 'sleep 5; sinfo -N -o \"%N %c %m %T\"; srun -N2 -l hostname | sort'"
+    if ! on "$LOGIN" "sudo -u ci bash -lc 'sleep 5; sinfo -N -o \"%N %c %m %T\"; timeout 60 srun -N2 -l hostname | sort'"; then
+        echo "srun sur deux nœuds a échoué : voir /var/log/slurm/*.log sur les deux VM (bash cluster/gcp.sh ssh)."
+        exit 1
+    fi
     if command -v gh > /dev/null && gh auth status > /dev/null 2>&1; then
         R=$(ghrepo)
         say "Runner GitHub auto-hébergé pour $R"
@@ -104,6 +107,12 @@ evidence)
         sleep 60
     done
     on "$LOGIN" "tail -n 4 $REMOTE/logs/cluster/m4-install.txt; cat $REMOTE/logs/cluster/m4-hashes.txt"
+    if ! on "$LOGIN" "grep -q '^\[code retour : 0\]' $REMOTE/logs/cluster/m4-install.txt"; then
+        echo "L'installation Spack a échoué. Voir le journal complet :"
+        echo "  bash cluster/gcp.sh ssh   puis   tail -50 $REMOTE/logs/cluster/m4-install.log"
+        echo "Corriger, puis supprimer $REMOTE/logs/cluster/m4-find.txt et relancer « evidence »."
+        exit 1
+    fi
     say "Mission 3 : scénarios Slurm"
     on "$LOGIN" "sudo bash $REMOTE/cluster/evidence.sh slurm"
     say "Mission 3 : panne d'un nœud (slurmd tué sur $NODE pendant un job)"
