@@ -1,0 +1,11 @@
+Run https://github.com/orrnithogalum/mpiflow/actions/runs/40192705477
+(pull_request, lint et build en échec, commit 384a1d4) : failure
+  job              résultat     durée
+  lint             failure      19 s
+  build            failure      40 s
+  test             skipped      -
+  registry_login   success      5 s
+  package          skipped      -
+  test_slurm       skipped      -
+
+--- job build ---

@@ -1,0 +1,10 @@
+Pull request https://github.com/orrnithogalum/mpiflow/pull/1
+runs créés pour le commit 753aa08 : 1 (pull_request)
+Run https://github.com/orrnithogalum/mpiflow/actions/runs/40192609955
+(pull_request, commit 753aa08) : failure
+  jobs exécutés : lint failure, build failure, registry_login success
+  jobs ignorés  : test, package, test_slurm
+
+--- job lint ---
+
+--- job registry_login (pull request) ---

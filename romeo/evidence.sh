@@ -63,7 +63,7 @@ slurm)
     scen "succès"
     rec m3-wait "sbatch --wait --parsable slurm/job_ci.sh > .w1; echo \"code retour de sbatch --wait : \$?\"; tail -n 2 ci-\$(cut -d';' -f1 .w1).out; MPIFLOW_CRASH_RANK=1 sbatch --wait --parsable slurm/job_ci.sh > .w2; echo \"code retour de sbatch --wait : \$?\"; tail -n 1 ci-\$(cut -d';' -f1 .w2).out" \
         "sbatch --wait slurm/job_ci.sh ; MPIFLOW_CRASH_RANK=1 sbatch --wait slurm/job_ci.sh"
-    rec m3-singleton "SRUN_MPI=none $POLL"
+    rec m3-singleton "MPI_LAUNCHER=srun SRUN_MPI=none $POLL"   # srun sans PMI, même si mpirun est retenu
     rec m3-crash "MPIFLOW_CRASH_RANK=1 $POLL"
     scen "un rang plante"
     rec m3-blocage "MPIFLOW_HANG_RANK=1 $POLL --time=00:01:00"

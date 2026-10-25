@@ -1,0 +1,15 @@
+Pull request https://github.com/orrnithogalum/mpiflow/pull/1
+runs créés pour le commit 753aa08 : 1 (pull_request)
+Run https://github.com/orrnithogalum/mpiflow/actions/runs/40192609955
+(pull_request, commit 753aa08) : failure
+  job              résultat     durée
+  lint             failure      22 s
+  build            failure      37 s
+  test             skipped      -
+  registry_login   success      5 s
+  package          skipped      -
+  test_slurm       skipped      -
+
+--- job lint ---
+
+--- job registry_login (pull request) ---

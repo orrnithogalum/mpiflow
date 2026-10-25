@@ -1,0 +1,16 @@
+$ hostname; grep -m1 PRETTY_NAME /etc/os-release | cut -d= -f2 | tr -d '"'; sinfo --version; env | grep '^SBATCH_' | sort; sinfo -s -p "${SBATCH_PARTITION:-}" 2> /dev/null; srun --mpi=list 2>&1 | tail -n 6
+romeo1
+Red Hat Enterprise Linux 9.6 (Plow)
+slurm 23.11.10-BullSequana.1.0
+SBATCH_ACCOUNT=r250127
+SBATCH_CONSTRAINT=x64cpu
+SBATCH_PARTITION=short
+PARTITION AVAIL  TIMELIMIT   NODES(A/I/O/T) NODELIST
+short        up 1-00:00:00       20/72/7/99 romeo-a[001-056],romeo-c[001-039,101-104]
+MPI plugin types are...
+	none
+	cray_shasta
+	pmi2
+	pmix
+specific pmix plugin versions available: pmix_v5,pmix_v3
+[code retour : 0]

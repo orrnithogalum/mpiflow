@@ -1,0 +1,6 @@
+784132|succès
+784136|un rang plante
+784137|un rang bloqué
+784139|attente d'un autre job
+784140|attente, timeout CI
+784142|remis en file

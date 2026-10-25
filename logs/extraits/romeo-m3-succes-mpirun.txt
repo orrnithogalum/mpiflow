@@ -1,0 +1,20 @@
+$ POLL_INTERVAL=10 ./slurm/submit_and_poll.sh slurm/job_ci.sh
+Job Slurm 784132 soumis (2026-10-25T16:17:42+01:00)
+[16:17:42] +    0s  job 784132  PENDING    raison=None
+[16:17:52] +   10s  job 784132  COMPLETED  
+---- sacct ----
+JobID               JobName      State ExitCode    Elapsed   NNodes         NodeList 
+------------ -------------- ---------- -------- ---------- -------- ---------------- 
+784132           ci-mpiflow  COMPLETED      0:0   00:00:04        2 romeo-c[021-022] 
+784132.batch          batch  COMPLETED      0:0   00:00:04        1       romeo-c021 
+784132.exte+         extern  COMPLETED      0:0   00:00:04        2 romeo-c[021-022] 
+784132.0              prted  COMPLETED      0:0   00:00:05        1       romeo-c022 
+---- sortie du job ----
+== Job 784132 : 2 nœud(s) [romeo-c[021-022]], 8 tâches
+== Environnement : ROMEO (romeo_load_x64cpu_env, Spack partagé)
+  rangs 0 à 3 sur romeo-c021   [4 lignes regroupées]
+  rangs 4 à 7 sur romeo-c022   [4 lignes regroupées]
+MPI test passed with 8 ranks on 2 host(s)
+SUCCESS: MPI test passed (8 rangs sur 2 nœuds)
+Verdict : succès
+[code retour : 0]

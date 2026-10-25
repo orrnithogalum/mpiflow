@@ -753,9 +753,17 @@ planté dans le transport mémoire partagée d'Open MPI et les autres sont rest�
 wall-time. Avec \code{--kill-on-bad-exit=1}, le même échec est détecté en une seconde. Le plantage
 venait du mini-cluster local, dont les deux nœuds Slurm étaient la même machine.
 
+\ifromeo
+Sans \code{--mpi=pmix}, l'Open MPI du mini-cluster local refusait de démarrer sous \code{srun}.
+Sur ROMEO, celui de l'installation partagée démarre au contraire huit \enquote{singletons} de
+taille~1 (\fic{logs/romeo/m3-singleton.txt}) : chacun se croit seul et le job réussirait à tort
+sans le contrôle \code{EXPECTED_RANKS} ; les huit processus signalent ici
+\code{taille de MPI_COMM_WORLD = 1, attendu 8} et le job échoue.
+\else
 Sans \code{--mpi=pmix}, Open MPI refuse de démarrer sous \code{srun}. Avec d'autres
 implémentations, les rangs peuvent démarrer en \enquote{singletons} de taille~1 et réussir à
 tort : c'est ce que détecte le contrôle \code{EXPECTED_RANKS}.
+\fi
 
 Interrogé dès la fin du job, \code{sacct} renvoyait encore un nom de job et une liste de nœuds
 incomplets, car la comptabilité est asynchrone ; le script attend quelques secondes avant

@@ -1,0 +1,55 @@
+$ spack -e spack/romeo concretize --force
+==> Concretized 2 specs:
+[^]  56vu72q  cmake@3.31.8 cflags=-O2 cppflags=-O2 cxxflags=-O2 fflags=-O2 ~doc+ncurses+ownlibs~qtgui build_sy
+[e]  dvdmojm      ^aocc@4.2.0~license-agreed build_system=generic arch=linux-rhel9-zen4
+[^]  rzsbkyn      ^compiler-wrapper@1.0 build_system=generic arch=linux-rhel9-zen4
+[^]  f7si76g      ^curl@8.10.1~gssapi~ldap+libidn2~librtmp~libssh~libssh2+nghttp2 build_system=autotools libs:
+[^]  c7fmqn6          ^gcc-runtime@14.2.0 build_system=generic arch=linux-rhel9-zen4
+[e]  p4tmvsw          ^glibc@2.34 build_system=autotools arch=linux-rhel9-zen4
+[^]  2n4rhdz          ^libidn2@2.3.7 cflags=-O2 cppflags=-O2 cxxflags=-O2 fflags=-O2  build_system=autotools a
+[^]  vguon3r              ^libunistring@1.2 cflags=-O2 cppflags=-O2 cxxflags=-O2 fflags=-O2  build_system=auto
+[^]  stjh3wm          ^nghttp2@1.63.0 cflags=-O2 cppflags=-O2 cxxflags=-O2 fflags=-O2  build_system=autotools 
+[^]  xnhhrka              ^diffutils@3.10 cflags=-O2 cppflags=-O2 cxxflags=-O2 fflags=-O2  build_system=autoto
+[^]  4726p34          ^openssl@3.4.0 cflags=-O2 cppflags=-O2 cxxflags=-O2 fflags=-O2 ~docs+shared build_system
+[^]  adzzwh5              ^ca-certificates-mozilla@2023-05-30 cflags=-O2 cppflags=-O2 cxxflags=-O2 fflags=-O2 
+[e]  iwx6lq3      ^glibc@2.34 cflags=-O2 cppflags=-O2 cxxflags=-O2 fflags=-O2  build_system=autotools arch=lin
+[^]  fdfhuwq      ^gmake@4.4.1~guile build_system=generic arch=linux-rhel9-zen4
+[^]  laocu6t      ^ncurses@6.5 cflags=-O2 cppflags=-O2 cxxflags=-O2 fflags=-O2 ~symlinks+termlib abi=none buil
+[^]  iyyrw5h      ^zlib-ng@2.2.1 cflags=-O2 cppflags=-O2 cxxflags=-O2 fflags=-O2 +compat+new_strategies+opt+pi
+[^]  lni3xp2  openmpi@5.0.5 cflags=-O2 cppflags=-O2 cxxflags=-O2 fflags=-O2 +atomics~cuda~debug~gpfs~internal-
+[^]  zf5evf2      ^autoconf@2.72 cflags=-O2 cppflags=-O2 cxxflags=-O2 fflags=-O2  build_system=autotools arch=
+[^]  6yyuun4          ^m4@1.4.19 cflags=-O2 cppflags=-O2 cxxflags=-O2 fflags=-O2 +sigsegv build_system=autotoo
+[^]  lw2rbaf              ^libsigsegv@2.14 cflags=-O2 cppflags=-O2 cxxflags=-O2 fflags=-O2  build_system=autot
+[^]  3247irr      ^automake@1.16.5 cflags=-O2 cppflags=-O2 cxxflags=-O2 fflags=-O2  build_system=autotools arc
+[^]  utv4ugu      ^gcc-runtime@11.4.1 cflags=-O2 cppflags=-O2 cxxflags=-O2 fflags=-O2  build_system=generic ar
+[e]  d2o46vo      ^glibc@2.34 cflags=-O2 cppflags=-O2 cxxflags=-O2 fflags=-O2  build_system=autotools arch=lin
+[^]  4ix6odq      ^gmake@4.4.1 cflags=-O2 cppflags=-O2 cxxflags=-O2 fflags=-O2 ~guile build_system=generic arc
+[^]  zszwj6m      ^hwloc@2.11.1 cflags=-O2 cppflags=-O2 cxxflags=-O2 fflags=-O2 ~cairo~cuda~gl~libudev+libxml2
+[^]  f3l77fo          ^libpciaccess@0.17 cflags=-O2 cppflags=-O2 cxxflags=-O2 fflags=-O2  build_system=autotoo
+[^]  tne3gix              ^util-macros@1.20.1 cflags=-O2 cppflags=-O2 cxxflags=-O2 fflags=-O2  build_system=au
+[^]  54ncwaf          ^libxml2@2.13.4 cflags=-O2 cppflags=-O2 cxxflags=-O2 fflags=-O2 +pic~python+shared build
+[^]  kkpyou2              ^libiconv@1.17 cflags=-O2 cppflags=-O2 cxxflags=-O2 fflags=-O2  build_system=autotoo
+[^]  v2hkzs4              ^xz@5.4.6 cflags=-O2 cppflags=-O2 cxxflags=-O2 fflags=-O2 ~pic build_system=autotool
+[^]  oykhar6      ^libevent@2.1.12 cflags=-O2 cppflags=-O2 cxxflags=-O2 fflags=-O2 +openssl build_system=autot
+[^]  3jpex5x      ^libtool@2.4.7 cflags=-O2 cppflags=-O2 cxxflags=-O2 fflags=-O2  build_system=autotools arch=
+[^]  pcdsi2i          ^findutils@4.9.0 cflags=-O2 cppflags=-O2 cxxflags=-O2 fflags=-O2  build_system=autotools
+[^]  px3naq2      ^numactl@2.0.18 cflags=-O2 cppflags=-O2 cxxflags=-O2 fflags=-O2  build_system=autotools arch
+[^]  r5zsu23      ^openssh@9.9p1 cflags=-O2 cppflags=-O2 cxxflags=-O2 fflags=-O2 +gssapi build_system=autotool
+[^]  z4bbnp4          ^krb5@1.21.3 cflags=-O2 cppflags=-O2 cxxflags=-O2 fflags=-O2 +shared build_system=autoto
+[^]  4r3cto3              ^bison@3.8.2 cflags=-O2 cppflags=-O2 cxxflags=-O2 fflags=-O2 ~color build_system=aut
+[^]  ps2e7uh              ^gettext@0.22.5 cflags=-O2 cppflags=-O2 cxxflags=-O2 fflags=-O2 +bzip2+curses+git~li
+[^]  sbg2rrq                  ^tar@1.34 cflags=-O2 cppflags=-O2 cxxflags=-O2 fflags=-O2  build_system=autotool
+[^]  o2ut2od                      ^pigz@2.8 cflags=-O2 cppflags=-O2 cxxflags=-O2 fflags=-O2  build_system=make
+[^]  mvocf5k                      ^zstd@1.5.6 cflags=-O2 cppflags=-O2 cxxflags=-O2 fflags=-O2 +programs build_
+[^]  b6r5grm          ^libedit@3.1-20240808 cflags=-O2 cppflags=-O2 cxxflags=-O2 fflags=-O2  build_system=auto
+[^]  fzcpq26          ^libxcrypt@4.4.35 cflags=-O2 cppflags=-O2 cxxflags=-O2 fflags=-O2 ~obsolete_api build_sy
+[^]  a5nl4sa      ^perl@5.40.0 cflags=-O2 cppflags=-O2 cxxflags=-O2 fflags=-O2 +cpanm+opcode+open+shared+threa
+[^]  4aiwvcl          ^berkeley-db@18.1.40 cflags=-O2 cppflags=-O2 cxxflags=-O2 fflags=-O2 +cxx~docs+stl build
+[^]  inmsdcs          ^bzip2@1.0.8 cflags=-O2 cppflags=-O2 cxxflags=-O2 fflags=-O2 ~debug~pic+shared build_sys
+[^]  sjcdv6v          ^gdbm@1.23 cflags=-O2 cppflags=-O2 cxxflags=-O2 fflags=-O2  build_system=autotools arch=
+[^]  uen5lmc              ^readline@8.2 cflags=-O2 cppflags=-O2 cxxflags=-O2 fflags=-O2  build_system=autotool
+[^]  zmg4tbs      ^pkgconf@2.2.0 cflags=-O2 cppflags=-O2 cxxflags=-O2 fflags=-O2  build_system=autotools arch=
+[^]  zp25yhu      ^pmix@5.0.3 cflags=-O2 cppflags=-O2 cxxflags=-O2 fflags=-O2 ~munge~python~restful build_syst
+[e]  coiztut      ^slurm@23.11.10 cflags=-O2 cppflags=-O2 cxxflags=-O2 fflags=-O2 ~cgroup~gtk~hdf5~hwloc~maria
+
+[code retour : 0]

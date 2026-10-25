@@ -1,0 +1,52 @@
+** WARNING: connection is not using a post-quantum key exchange algorithm.
+** This session may be vulnerable to "store now, decrypt later" attacks.
+** The server may need to be upgraded. See https://openssh.com/pq.html
+$ hostname ; système ; version de Slurm
+romeo1
+Red Hat Enterprise Linux 9.6 (Plow)
+slurm 23.11.10-BullSequana.1.0
+$ sinfo -s
+PARTITION AVAIL  TIMELIMIT   NODES(A/I/O/T) NODELIST
+long         up 30-00:00:0       10/51/3/64 romeo-a[001-040],romeo-c[001-020,101-104]
+short        up 1-00:00:00       20/72/7/99 romeo-a[001-056],romeo-c[001-039,101-104]
+instant*     up    1:00:00      20/74/8/102 romeo-a[001-058],romeo-c[001-040,101-104]
+$ sinfo -o '%P %l %D %f'   # partition, durée maximale, nœuds, types de nœuds
+instant* 1:00:00 44 x64cpu
+instant* 1:00:00 58 armgpu
+long 30-00:00:00 24 x64cpu
+long 30-00:00:00 40 armgpu
+short 1-00:00:00 43 x64cpu
+short 1-00:00:00 56 armgpu
+$ sacctmgr show assoc user=$USER format=account,partition,qos,maxsubmit
+default||normal|0
+r250127||normal|100
+r260105||normal|100
+$ srun --mpi=list
+MPI plugin types are...
+	none
+	cray_shasta
+	pmi2
+	pmix
+specific pmix plugin versions available: pmix_v5,pmix_v3
+$ romeo_load_x64cpu_env ; spack --version ; spack arch ; spack compilers
+1.0.1
+linux-rhel9-zen4
+
+-- llvm rhel9-x86_64 --------------------------------------------
+[^]  llvm@17.0.6
+
+-- pgi rhel9-x86_64 ---------------------------------------------
+[^]  pgi@18.10
+$ spack find -v openmpi cmake
+-- linux-rhel9-zen4 / %c,cxx=aocc@4.2.0 -------------------------
+cmake@3.31.8~doc+ncurses+ownlibs~qtgui build_system=generic build_type=Release
+cmake@3.31.8~doc+ncurses+ownlibs~qtgui build_system=generic build_type=Release
+
+-- linux-rhel9-zen4 / no compilers ------------------------------
+cmake@3.30.5~doc+ncurses+ownlibs~qtgui build_system=generic build_type=Release patches:=dbc3892
+cmake@3.30.5~doc+ncurses+ownlibs~qtgui build_system=generic build_type=Release patches:=dbc3892
+cmake@3.30.5~doc+ncurses+ownlibs~qtgui build_system=generic build_type=Release patches:=dbc3892
+openmpi@4.1.7+atomics~cuda~cxx~cxx_exceptions~debug~gpfs~internal-hwloc~internal-libevent~internal-pmix~java+legacylaunc
+openmpi@4.1.7+atomics~cuda~cxx~cxx_exceptions~debug~gpfs~internal-hwloc~internal-libevent~internal-pmix~java+legacylaunc
+openmpi@5.0.5+atomics~cuda~debug~gpfs~internal-hwloc~internal-libevent~internal-pmix~java~lustre~memchecker~openshmem~ro
+openmpi@5.0.5+atomics~cuda~debug~gpfs~internal-hwloc~internal-libevent~internal-pmix~java~lustre~memchecker~openshmem~ro

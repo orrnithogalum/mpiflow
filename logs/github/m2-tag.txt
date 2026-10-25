@@ -1,0 +1,13 @@
+Run https://github.com/orrnithogalum/mpiflow/actions/runs/40192790139
+(push du tag v0.1.0, commit f8c6a5d) : failure
+  job              résultat     durée
+  lint             skipped      -
+  build            failure      54 s
+  test             skipped      -
+  registry_login   success      4 s
+  package          skipped      -
+  test_slurm       skipped      -
+
+--- job package ---
+
+artefacts du run :

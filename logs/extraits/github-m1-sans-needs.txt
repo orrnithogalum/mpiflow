@@ -1,0 +1,7 @@
+Run https://github.com/orrnithogalum/mpiflow/actions/runs/40192505670
+(workflow_dispatch, test sans needs, commit 5e1fa08) : failure
+  jobs exécutés : build failure, test failure, registry_login success
+  jobs ignorés  : lint, package, test_slurm
+
+--- job test ---
+  [failure] Process completed with exit code 100.

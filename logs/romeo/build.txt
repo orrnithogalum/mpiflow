@@ -1,0 +1,7 @@
+$ bash -l slurm/build_hpc.sh 2>&1 | tail -n 5
+environnement : ROMEO (romeo_load_x64cpu_env, Spack partagé)
+mpicc : /gpfs/home/sgmrowe/mpiflow/spack/romeo/.spack-env/view/bin/mpicc (gcc (GCC) 11.5.0 20240719 (Red Hat 11.5.0-5))
+[ 50%] Building C object tests/CMakeFiles/test_mpi.dir/test_mpi.c.o
+[100%] Linking C executable test_mpi
+[100%] Built target test_mpi
+[code retour : 0]

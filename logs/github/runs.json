@@ -1,0 +1,79 @@
+{
+ "push-main": {
+  "titre": "push sur main",
+  "url": "https://github.com/orrnithogalum/mpiflow/actions/runs/40206573817",
+  "jobs": {
+   "build": "success",
+   "registry_login": "success",
+   "lint": "skipped",
+   "test": "success",
+   "package": "skipped",
+   "test_slurm": "skipped"
+  }
+ },
+ "sans-needs": {
+  "titre": "test sans needs",
+  "url": "https://github.com/orrnithogalum/mpiflow/actions/runs/40192505670",
+  "jobs": {
+   "registry_login": "success",
+   "test": "failure",
+   "build": "failure",
+   "lint": "skipped",
+   "test_slurm": "skipped",
+   "package": "skipped"
+  }
+ },
+ "pr-lint": {
+  "titre": "pull request, erreur cppcheck",
+  "url": "https://github.com/orrnithogalum/mpiflow/actions/runs/40192609955",
+  "jobs": {
+   "build": "failure",
+   "registry_login": "success",
+   "lint": "failure",
+   "test_slurm": "skipped",
+   "package": "skipped",
+   "test": "skipped"
+  }
+ },
+ "pr-build": {
+  "titre": "pull request, + erreur de compilation",
+  "url": "https://github.com/orrnithogalum/mpiflow/actions/runs/40192705477",
+  "jobs": {
+   "lint": "failure",
+   "build": "failure",
+   "registry_login": "success",
+   "test_slurm": "skipped",
+   "test": "skipped",
+   "package": "skipped"
+  }
+ },
+ "tag": {
+  "titre": "tag v0.1.0",
+  "url": "https://github.com/orrnithogalum/mpiflow/actions/runs/40192790139",
+  "jobs": {
+   "build": "failure",
+   "registry_login": "success",
+   "lint": "skipped",
+   "test": "skipped",
+   "test_slurm": "skipped",
+   "package": "skipped"
+  }
+ },
+ "rc1": {
+  "titre": "tag v0.1.0-rc1",
+  "url": null,
+  "jobs": {}
+ },
+ "publier": {
+  "titre": "package forcé depuis main",
+  "url": "https://github.com/orrnithogalum/mpiflow/actions/runs/40192949451",
+  "jobs": {
+   "build": "failure",
+   "registry_login": "success",
+   "lint": "skipped",
+   "test": "skipped",
+   "package": "skipped",
+   "test_slurm": "skipped"
+  }
+ }
+}

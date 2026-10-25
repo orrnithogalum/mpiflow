@@ -1,0 +1,21 @@
+$ MPIFLOW_HANG_RANK=1 POLL_INTERVAL=10 ./slurm/submit_and_poll.sh slurm/job_ci.sh --time=00:01:00
+Job Slurm 784137 soumis (2026-10-25T16:18:48+01:00)
+[16:18:49] +    1s  job 784137  RUNNING    raison=Prolog
+   [... 7 relevés identiques ...]
+[16:20:09] +   81s  job 784137  RUNNING    raison=None
+[16:20:20] +   92s  job 784137  TIMEOUT    
+---- sacct ----
+JobID               JobName      State ExitCode    Elapsed   NNodes         NodeList 
+------------ -------------- ---------- -------- ---------- -------- ---------------- 
+784137           ci-mpiflow    TIMEOUT      0:0   00:01:23        2 romeo-c[021-022] 
+784137.batch          batch  CANCELLED     0:15   00:01:24        1       romeo-c021 
+784137.exte+         extern  COMPLETED      0:0   00:01:23        2 romeo-c[021-022] 
+784137.0              prted  CANCELLED     0:15   00:01:26        1       romeo-c022 
+---- sortie du job ----
+== Job 784137 : 2 nœud(s) [romeo-c[021-022]], 8 tâches
+== Environnement : ROMEO (romeo_load_x64cpu_env, Spack partagé)
+[rang 1] blocage simulé (MPIFLOW_HANG_RANK)
+slurmstepd: error: *** JOB 784137 ON romeo-c021 CANCELLED AT 2026-10-25T16:20:11 DUE TO TIME LIMIT ***
+   [...]
+Verdict : échec du JOB (TIMEOUT, ExitCode=0:0)
+[code retour : 1]

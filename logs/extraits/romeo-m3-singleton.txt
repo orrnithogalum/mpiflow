@@ -1,0 +1,35 @@
+$ MPI_LAUNCHER=srun SRUN_MPI=none POLL_INTERVAL=10 ./slurm/submit_and_poll.sh slurm/job_ci.sh
+Job Slurm 784143 soumis (2026-10-25T16:24:15+01:00)
+[16:24:16] +    1s  job 784143  PENDING    raison=None
+[16:24:26] +   11s  job 784143  FAILED     
+---- sacct ----
+JobID               JobName      State ExitCode    Elapsed   NNodes         NodeList 
+------------ -------------- ---------- -------- ---------- -------- ---------------- 
+784143           ci-mpiflow     FAILED      1:0   00:00:03        2 romeo-c[021-022] 
+784143.batch          batch     FAILED      1:0   00:00:03        1       romeo-c021 
+784143.exte+         extern  COMPLETED      0:0   00:00:03        2 romeo-c[021-022] 
+784143.0           test_mpi     FAILED      1:0   00:00:01        2 romeo-c[021-022] 
+---- sortie du job ----
+== Job 784143 : 2 nœud(s) [romeo-c[021-022]], 8 tâches
+== Environnement : ROMEO (romeo_load_x64cpu_env, Spack partagé)
+   [...]
+  rang 0 sur romeo-c022
+MPI test FAILED: 1 error(s) on 1 ranks
+  rang 0 sur romeo-c022
+MPI test FAILED: 1 error(s) on 1 ranks
+  rang 0 sur romeo-c022
+MPI test FAILED: 1 error(s) on 1 ranks
+  rang 0 sur romeo-c022
+MPI test FAILED: 1 error(s) on 1 ranks
+  rang 0 sur romeo-c021
+MPI test FAILED: 1 error(s) on 1 ranks
+  rang 0 sur romeo-c021
+MPI test FAILED: 1 error(s) on 1 ranks
+  rang 0 sur romeo-c021
+MPI test FAILED: 1 error(s) on 1 ranks
+  rang 0 sur romeo-c021
+MPI test FAILED: 1 error(s) on 1 ranks
+slurmstepd: error: *** STEP 784143.0 ON romeo-c021 CANCELLED AT 2026-10-25T16:24:19 ***
+FAILED: srun a renvoyé 1
+Verdict : échec du JOB (FAILED, ExitCode=1:0)
+[code retour : 1]

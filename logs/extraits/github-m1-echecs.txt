@@ -1,0 +1,6 @@
+Run https://github.com/orrnithogalum/mpiflow/actions/runs/40192705477
+(pull_request, lint et build en échec, commit 384a1d4) : failure
+  jobs exécutés : lint failure, build failure, registry_login success
+  jobs ignorés  : test, package, test_slurm
+
+--- job build ---

@@ -1,0 +1,16 @@
+Run https://github.com/orrnithogalum/mpiflow/actions/runs/40206573817
+(push sur main, commit 056231b) : success
+  jobs exécutés : build success, test success, registry_login success
+  jobs ignorés  : lint, package, test_slurm
+
+--- job test (extrait) ---
+1/2 Test #1: mpi_bcast_np1 ....................   Passed    0.30 sec
+2/2 Test #2: mpi_bcast_np4 ....................   Passed    0.35 sec
+100% tests passed, 0 tests failed out of 2
+  rangs 0 à 3 sur 66ab31d35a96   [4 lignes regroupées]
+MPI test passed with 4 ranks on 1 host(s)
+
+--- job registry_login ---
+> Run echo "ref=${GITHUB_REF} événement=${GITHUB_EVENT_NAME}"
+ref=refs/heads/main événement=push
+FAKE_REGISTRY_TOKEN vide : secret non transmis à ce job
