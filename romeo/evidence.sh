@@ -21,7 +21,9 @@ if [ -s "$OUT/launcher.txt" ]; then MPI_LAUNCHER=$(cat "$OUT/launcher.txt"); exp
 
 rec() {   # rec <nom> <commande> [<commande affichée>]
     local f="$OUT/$1.txt"
-    { echo "\$ ${3:-$2}"; bash -lc "cd '$REPO' && $2" < /dev/null 2>&1; echo "[code retour : $?]"; } > "$f"
+    # tr : mpirun écrit parfois des octets NUL, qui font passer le log pour binaire
+    { echo "\$ ${3:-$2}"; bash -lc "cd '$REPO' && $2" < /dev/null 2>&1; echo "[code retour : $?]"; } \
+        | tr -d '\000' > "$f"
     echo "-- $1 : $(tail -n 1 "$f")"
 }
 jobid() { cut -d';' -f1 "$REPO/.slurm_jobid"; }
@@ -50,11 +52,13 @@ slurm)
     rec build "bash -l slurm/build_hpc.sh 2>&1 | tail -n 5"
 
     rec m3-succes "$POLL"
-    if ! grep -q '^Verdict : succès' "$OUT/m3-succes.txt"; then
-        # repli : mpirun dans l'allocation (voir slurm/job_ci.sh)
+    if [ -z "${MPI_LAUNCHER:-}" ] && ! grep -q '^Verdict : succès' "$OUT/m3-succes.txt"; then
+        # repli : mpirun dans l'allocation (voir slurm/job_ci.sh) ; l'échec de srun est gardé
+        # dans m3-srun-pmix.txt (conservé si une relance part directement de mpirun)
+        mv "$OUT/m3-succes.txt" "$OUT/m3-srun-pmix.txt"
         export MPI_LAUNCHER=mpirun
-        rec m3-succes-mpirun "$POLL"
-        if grep -q '^Verdict : succès' "$OUT/m3-succes-mpirun.txt"; then
+        rec m3-succes "$POLL"
+        if grep -q '^Verdict : succès' "$OUT/m3-succes.txt"; then
             echo mpirun > "$OUT/launcher.txt"
         else
             unset MPI_LAUNCHER
@@ -106,6 +110,7 @@ finish)
     rec m3-chronologie "sacct -X -D -j $ids -o JobID,JobName%12,State,Submit,Start,End,Elapsed"
     read -r n_reuse n_build < "$OUT/spack-counts.txt" 2> /dev/null || { n_reuse='?'; n_build='?'; }
     T=$(grep -o 'durée : [0-9a-z]*' "$OUT/m4-romeo-install.txt" 2> /dev/null | tail -1 | cut -d' ' -f3)
+    T=$(sed -E 's/^0m//; s/m/~min~/; s/s$/~s/' <<< "$T")     # 0m5s -> 5~s, 2m30s -> 2~min~30~s
     OS=$(grep -m1 PRETTY_NAME /etc/os-release | cut -d= -f2 | tr -d '"')
     SVER=$(sinfo --version | awk '{print $2}')
     cat > "$OUT/meta.tex" <<EOF

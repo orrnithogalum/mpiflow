@@ -66,8 +66,8 @@ jobs:
     container: gcc:13-bookworm
     steps:
       - uses: actions/checkout@v7
-      # l'image détourne /usr/bin/gfortran (dpkg-divert) vers son gfortran 13 de /usr/local/bin :
-      # sans ce lien, le paquet gfortran tiré par libopenmpi-dev échoue (update-alternatives)
+      # l'image détourne /usr/bin/gfortran (dpkg-divert) : sans ce lien vers le sien,
+      # le paquet gfortran tiré par libopenmpi-dev échoue (update-alternatives)
       - run: |
           ln -sf /usr/local/bin/gfortran /usr/bin/gfortran
           apt-get update -qq && apt-get install -y -qq cmake libopenmpi-dev openmpi-bin > /dev/null

@@ -331,7 +331,7 @@ def _demo():
     remember("pr-build", "pull request, + erreur de compilation", r, js)
     build = next(j for j in js if j["name"] == "build")
     write("m1-echecs.txt", header(r, "pull_request, lint et build en échec") + table(js)
-          + ["", "--- job build ---"] + grep(log_of(build), r"error:|Error:|\^", 8))
+          + ["", "--- job build ---"] + grep(log_of(build), r"error:|Error:|^\s*\|\s*\^", 8))
     gh("pr", "close", str(pr["number"]), "--repo", R, "--delete-branch", "--comment",
        "Démonstration terminée.")
     git("checkout", "-q", "main")

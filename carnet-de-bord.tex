@@ -16,6 +16,7 @@
 \newcommand{\spackreuse}{?}
 \newcommand{\spackbuild}{?}
 \newcommand{\mpilauncher}{srun}
+\newcommand{\lanceurmpirun}{mpirun}   % \ifx\mpilauncher\lanceurmpirun : repli mpirun
 \newcommand{\ghsecret}{environnement}
 \newif\ifgithub \newif\ifghdemo \newif\ifghhpc \newif\ifromeo \newif\ifbrouillon
 % -----------------------------------------------------------------------------
@@ -245,7 +246,7 @@ GitHub auto-hébergé qui tourne sur notre poste (figure~\ref{fig:infra}).
   \draw[vm, fill=oiVert!8] (13.55,-0.75) rectangle (15.8,-3.0);
   \node[anchor=north west, font=\sffamily\scriptsize\bfseries] at (13.6,-0.8) {nœuds de calcul};
   \node[anchor=north west, align=left, text=black!75] at (13.6,-1.2)
-    {2 nœuds, 8 rangs\\ type \texttt{x64cpu}\\ lancés par \texttt{srun}};
+    {2 nœuds, 8 rangs\\ type \texttt{x64cpu}\\ lancés par \texttt{\mpilauncher}};
   \draw[{Stealth[length=2mm]}-{Stealth[length=2mm]}, thick, oiOrange] (13.1,-1.9) -- (13.55,-1.9);
   \draw[fill=black!8, draw=black!45, rounded corners=2pt] (10.25,-3.35) rectangle (15.8,-3.95);
   \node at (13.02,-3.65) {répertoire personnel, partagé entre les nœuds};
@@ -375,7 +376,8 @@ figure~\ref{fig:ci-cluster} représente ce qui sépare les deux exécutions.
   \draw[{Stealth[length=2mm]}-{Stealth[length=2mm]}, very thick, oiOrange] (10.95,-1.2) --
     node[above, text=black] {réseau} (12.25,-1.2);
   \node[anchor=south, align=center, text=black!75] at (11.6,-2.55)
-    {\texttt{srun -{}-mpi=pmix} dans l'allocation\\ Open MPI de l'installation Spack, notre compte};
+    {\ifx\mpilauncher\lanceurmpirun \texttt{mpirun} dans l'allocation (PMIx absent des nœuds)%
+     \else\texttt{srun -{}-mpi=pmix} dans l'allocation\fi\\ Open MPI de l'installation Spack, notre compte};
 \end{tikzpicture}
 \captionof{figure}{Le même test MPI dans le conteneur CI et sur le cluster : placement des
 rangs, communications et lanceur.}\label{fig:ci-cluster}
@@ -383,10 +385,13 @@ rangs, communications et lanceur.}\label{fig:ci-cluster}
 Dans le conteneur, les quatre rangs partagent une machine de quelques vCPU : il faut
 \code{--oversubscribe} pour lancer plus de rangs que de cœurs et \code{--allow-run-as-root} parce
 que le conteneur tourne en root. Les communications ne passent que par la mémoire partagée, et
-\code{mpirun} crée lui-même les processus, sans allocation. Sur ROMEO, \code{srun} lance les
-rangs dans une allocation Slurm, sous notre compte sans privilèges et avec l'Open MPI de
-l'installation Spack du centre, via PMIx ; les rangs de nœuds différents communiquent par le
-réseau d'interconnexion.
+\code{mpirun} crée lui-même les processus, sans allocation. Sur ROMEO, les rangs démarrent dans
+une allocation Slurm, sous notre compte sans privilèges et avec l'Open MPI de l'installation
+Spack du centre. \ifx\mpilauncher\lanceurmpirun Faute de bibliothèque PMIx sur les nœuds de
+calcul, \code{srun} ne peut pas les lancer lui-même : \code{mpirun} s'appuie sur l'allocation et
+démarre un démon par nœud avec Slurm (étape \code{prted} de \code{sacct}).\else \code{srun}
+les lance lui-même via PMIx.\fi{} Les rangs de nœuds différents communiquent par le réseau
+d'interconnexion.
 \end{figtexte}
 
 Les deux exécutions réagissent aussi différemment aux pannes : quand un rang meurt,
@@ -586,9 +591,9 @@ active l'environnement Spack dédié du dépôt. Il lance ensuite
 \code{srun --mpi=pmix --kill-on-bad-exit=1} avec \code{EXPECTED_RANKS} égal au nombre de tâches,
 et se termine par \code{SUCCESS} ou \code{FAILED}.
 \ifromeo
-Sur ROMEO, le premier essai échoue en 5~s : le plugin \code{mpi/pmix} de Slurm ne trouve pas
+Sur ROMEO, le premier essai a échoué en 5~s : le plugin \code{mpi/pmix} de Slurm ne trouve pas
 la bibliothèque PMIx sur les nœuds de calcul (\code{can not load PMIx library},
-\fic{logs/romeo/m3-succes.txt}). Le script se rabat alors sur \code{mpirun} dans l'allocation
+\fic{logs/romeo/m3-srun-pmix.txt}). Le script se rabat alors sur \code{mpirun} dans l'allocation
 (\code{MPI_LAUNCHER=mpirun}), qui démarre ses propres démons sur les nœuds alloués ; lanceur
 retenu pour la suite et pour le CI : \texttt{\mpilauncher}.
 \fi
@@ -636,11 +641,8 @@ qu'il n'y a rien à annuler.
 exécuté depuis GitHub sur ROMEO}}{%
 Le cas nominal est donné par le listing~\ref{lst:m3-run} : huit rangs sur deux nœuds,
 \code{ExitCode 0:0}, ligne \code{SUCCESS}.
-\IfFileExists{logs/extraits/romeo-m3-succes-mpirun.txt}{%
-\preuve[label=lst:m3-run]{logs/extraits/romeo-m3-succes-mpirun.txt}{Soumission et suivi sur ROMEO,
-lancement par \texttt{mpirun}}}{%
 \preuveou[label=lst:m3-run]{logs/extraits/romeo-m3-succes.txt}{Soumission et suivi sur ROMEO}
-  [label=lst:m3-run]{logs/m3-poll-4-success.txt}{Soumission et suivi sur le mini-cluster local}}}
+  [label=lst:m3-run]{logs/m3-poll-4-success.txt}{Soumission et suivi sur le mini-cluster local}}
 
 \begin{figtexte}
 \begin{minipage}{\linewidth}\setlength{\parindent}{1.5em}\noindent\hspace*{1.5em}%
@@ -650,8 +652,9 @@ nightly doit savoir traiter ; la figure~\ref{fig:chrono} les place sur une même
 \end{minipage}\par\vspace{8pt}
 \input{logs/figures/chrono.tex}
 \commentaire
-Un rang qui plante donne \code{FAILED} en quelques secondes, parce que
-\code{--kill-on-bad-exit} arrête les autres rangs ; un rang bloqué retient au contraire les autres
+Un rang qui plante donne \code{FAILED} en quelques secondes, parce que le lanceur arrête alors
+les autres rangs (\ifx\mpilauncher\lanceurmpirun\code{mpirun}, de lui-même\else
+\code{srun}, grâce à \code{--kill-on-bad-exit}\fi) ; un rang bloqué retient au contraire les autres
 dans la collective, et seul le wall-time de Slurm y met fin (\code{TIMEOUT}).
 \ifromeo Un job qui en attend un autre reste en \code{PENDING}, avec la raison
 \code{Dependency}, puis s'exécute.\else Derrière un job qui occupe tout le cluster, le job du CI

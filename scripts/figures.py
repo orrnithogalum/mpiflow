@@ -57,8 +57,9 @@ def runs_figure():
     x0, dx, dy = 5.8, 1.82, 0.5
     out = [r"\begin{tikzpicture}[font=\sffamily\footnotesize]"]
     for i, name in enumerate(JOBS):
-        out.append(rf"\node[anchor=base, font=\ttfamily\scriptsize] at ({x0 + i * dx},0.35) "
-                   rf"{{{name.replace('_', chr(92) + '_')}}};")
+        # registry_login, test_slurm : coupés après « _ », sinon ils touchent la colonne voisine
+        out.append(rf"\node[anchor=south, align=center, font=\ttfamily\scriptsize] at ({x0 + i * dx},0.2) "
+                   rf"{{{name.replace('_', chr(92) + '_' + chr(92) * 2 + '[-2pt]')}}};")
     rows = [(k, t) for k, t in ROWS if not real or k in data]
     for r, (key, title) in enumerate(rows):
         y = -(r + 0.5) * dy
@@ -179,7 +180,7 @@ def chrono_figure():
     out.append(rf"\fill[oiCiel!60] (0,{yl - 0.09}) rectangle (0.45,{yl + 0.09});")
     out.append(rf"\node[anchor=west] at (0.5,{yl}) {{PENDING (en file)}};")
     out.append(rf"\node[anchor=west] at (3.0,{yl}) {{RUNNING, terminé en :}};")
-    x = 5.75
+    x = 6.6                                 # après « RUNNING, terminé en : »
     order = ["COMPLETED", "FAILED", "TIMEOUT", "NODE_FAIL", "REQUEUED", "PREEMPTED"]
     for st in [o for o in order if o in seen]:
         out.append(rf"\fill[{COL[st]}] ({x},{yl - 0.09}) rectangle ({x + 0.45},{yl + 0.09});")
@@ -262,7 +263,7 @@ def resserre(lines):
 
 def condense(src, dst):
     """Extrait lisible d'un log : relevés identiques du suivi, traces de pile et sortie du job abrégés."""
-    lines = resserre(sortie(open(src, encoding="utf-8").read().splitlines()))
+    lines = resserre(sortie(open(src, encoding="utf-8").read().replace("\x00", "").splitlines()))
     out, i = [], 0
     while i < len(lines):
         m = POLL.match(lines[i])
