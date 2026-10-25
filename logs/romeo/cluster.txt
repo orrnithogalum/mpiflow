@@ -6,7 +6,7 @@ SBATCH_ACCOUNT=r250127
 SBATCH_CONSTRAINT=x64cpu
 SBATCH_PARTITION=short
 PARTITION AVAIL  TIMELIMIT   NODES(A/I/O/T) NODELIST
-short        up 1-00:00:00       20/72/7/99 romeo-a[001-056],romeo-c[001-039,101-104]
+short        up 1-00:00:00       21/71/7/99 romeo-a[001-056],romeo-c[001-039,101-104]
 MPI plugin types are...
 	none
 	cray_shasta

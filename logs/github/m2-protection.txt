@@ -1,11 +1,13 @@
-Run https://github.com/orrnithogalum/mpiflow/actions/runs/40192949451
-(workflow_dispatch sur main, publier=true, commit f8c6a5d) : failure
+Run https://github.com/orrnithogalum/mpiflow/actions/runs/40209355375
+(workflow_dispatch sur main, publier=true, commit daf94f0) : failure
   job              résultat     durée
   lint             skipped      -
-  build            failure      40 s
-  test             skipped      -
-  registry_login   success      5 s
-  package          skipped      -
+  build            success      51 s
+  test             success      52 s
+  registry_login   success      4 s
+  package          failure      1 s
   test_slurm       skipped      -
 
 --- job package ---
+  [failure] Branch "main" is not allowed to deploy to release due to environment protection rules.
+  [failure] The deployment was rejected or didn't satisfy other protection rules.

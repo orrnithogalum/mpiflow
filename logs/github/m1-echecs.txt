@@ -1,18 +1,18 @@
-Run https://github.com/orrnithogalum/mpiflow/actions/runs/40208185537
-(pull_request, lint et build en échec, commit 23ac8e6) : failure
+Run https://github.com/orrnithogalum/mpiflow/actions/runs/40209045347
+(pull_request, lint et build en échec, commit be28340) : failure
   job              résultat     durée
-  lint             failure      15 s
-  build            failure      41 s
+  lint             failure      16 s
+  build            failure      52 s
   test             skipped      -
-  registry_login   success      5 s
+  registry_login   success      4 s
   package          skipped      -
   test_slurm       skipped      -
 
 --- job build ---
-##[command]/usr/bin/docker exec  f1c0a2d526d72c2ffe6da3cf68da068d93dc6fe15ced0edd698b1028310f7f1c sh -c "cat /etc/*release | grep ^ID"
+##[command]/usr/bin/docker exec  fff0dea9cc089b16c1088b757ab42642fb388e33669befbdea445c1ac8b9008e sh -c "cat /etc/*release | grep ^ID"
 [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
 /__w/mpiflow/mpiflow/tests/test_mpi.c:104:19: error: expected ';' before 'return'
       |                   ^
 Error: Process completed with exit code 2.
-##[command]/usr/bin/docker exec  f1c0a2d526d72c2ffe6da3cf68da068d93dc6fe15ced0edd698b1028310f7f1c sh -c "cat /etc/*release | grep ^ID"
+##[command]/usr/bin/docker exec  fff0dea9cc089b16c1088b757ab42642fb388e33669befbdea445c1ac8b9008e sh -c "cat /etc/*release | grep ^ID"
 [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:

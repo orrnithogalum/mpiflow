@@ -13,11 +13,11 @@
  },
  "sans-needs": {
   "titre": "test sans needs",
-  "url": "https://github.com/orrnithogalum/mpiflow/actions/runs/40207900009",
+  "url": "https://github.com/orrnithogalum/mpiflow/actions/runs/40208780629",
   "jobs": {
    "build": "success",
    "registry_login": "success",
-   "test": "success",
+   "test": "failure",
    "lint": "skipped",
    "test_slurm": "skipped",
    "package": "skipped"
@@ -25,11 +25,11 @@
  },
  "pr-lint": {
   "titre": "pull request, erreur cppcheck",
-  "url": "https://github.com/orrnithogalum/mpiflow/actions/runs/40207997530",
+  "url": "https://github.com/orrnithogalum/mpiflow/actions/runs/40208862294",
   "jobs": {
-   "registry_login": "success",
    "lint": "failure",
    "build": "success",
+   "registry_login": "success",
    "test": "success",
    "package": "skipped",
    "test_slurm": "skipped"
@@ -37,11 +37,11 @@
  },
  "pr-build": {
   "titre": "pull request, + erreur de compilation",
-  "url": "https://github.com/orrnithogalum/mpiflow/actions/runs/40208185537",
+  "url": "https://github.com/orrnithogalum/mpiflow/actions/runs/40209045347",
   "jobs": {
+   "build": "failure",
    "lint": "failure",
    "registry_login": "success",
-   "build": "failure",
    "test": "skipped",
    "package": "skipped",
    "test_slurm": "skipped"
@@ -49,7 +49,7 @@
  },
  "tag": {
   "titre": "tag v0.1.0",
-  "url": "https://github.com/orrnithogalum/mpiflow/actions/runs/40208275408",
+  "url": "https://github.com/orrnithogalum/mpiflow/actions/runs/40209131944",
   "jobs": {
    "build": "success",
    "registry_login": "success",
@@ -66,13 +66,13 @@
  },
  "publier": {
   "titre": "package forcé depuis main",
-  "url": "https://github.com/orrnithogalum/mpiflow/actions/runs/40192949451",
+  "url": "https://github.com/orrnithogalum/mpiflow/actions/runs/40209355375",
   "jobs": {
-   "build": "failure",
+   "build": "success",
    "registry_login": "success",
    "lint": "skipped",
-   "test": "skipped",
-   "package": "skipped",
+   "test": "success",
+   "package": "failure",
    "test_slurm": "skipped"
   }
  }

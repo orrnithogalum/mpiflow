@@ -1,7 +1,15 @@
-Run https://github.com/orrnithogalum/mpiflow/actions/runs/40192505670
-(workflow_dispatch, test sans needs, commit 5e1fa08) : failure
-  jobs exécutés : build failure, test failure, registry_login success
+Run https://github.com/orrnithogalum/mpiflow/actions/runs/40208780629
+(workflow_dispatch, test sans needs, commit 8acb4e9) : failure
+  jobs exécutés : build success, test failure, registry_login success
   jobs ignorés  : lint, package, test_slurm
 
 --- job test ---
-  [failure] Process completed with exit code 100.
+Download action repository 'actions/download-artifact@v8' (SHA:9000827ccba6bdab643e8b6fd33ac0654aef8333)
+> Run actions/download-artifact@v8
+Downloading single artifact
+Error: Unable to download artifact(s): Artifact not found for name: build
+        Please ensure that your artifact is not expired and the artifact was uploaded using a compatible version of toolkit/upload-artifact.
+        For more information, visit the GitHub Artifacts FAQ: https://github.com/actions/toolkit/blob/main/packages/artifact/docs/faq.md
+  [failure] Unable to download artifact(s): Artifact not found for name: build
+        Please ensure that your artifact is not expired and the artifact was uploaded using a compatible version of toolkit/upload-artifact.
+        For more information, visit the GitHub Artifacts FAQ: https://github.com/actions/toolkit/blob/main/packages/artifact/docs/faq.md

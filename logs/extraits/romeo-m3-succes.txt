@@ -1,17 +1,20 @@
 $ POLL_INTERVAL=10 ./slurm/submit_and_poll.sh slurm/job_ci.sh
-Job Slurm 784131 soumis (2026-10-25T16:17:27+01:00)
-[16:17:27] +    0s  job 784131  PENDING    raison=None
-[16:17:37] +   10s  job 784131  FAILED     
+Job Slurm 784149 soumis (2026-10-25T17:00:31+01:00)
+[17:00:31] +    0s  job 784149  PENDING    raison=None
+[17:00:41] +   10s  job 784149  COMPLETED  
 ---- sacct ----
 JobID               JobName      State ExitCode    Elapsed   NNodes         NodeList 
 ------------ -------------- ---------- -------- ---------- -------- ---------------- 
-784131           ci-mpiflow     FAILED      1:0   00:00:05        2 romeo-c[021-022] 
-784131.batch          batch     FAILED      1:0   00:00:05        1       romeo-c021 
-784131.exte+         extern  COMPLETED      0:0   00:00:05        2 romeo-c[021-022] 
+784149           ci-mpiflow  COMPLETED      0:0   00:00:04        2 romeo-c[021-022] 
+784149.batch          batch  COMPLETED      0:0   00:00:04        1       romeo-c021 
+784149.exte+         extern  COMPLETED      0:0   00:00:04        2 romeo-c[021-022] 
+784149.0              prted  COMPLETED      0:0   00:00:03        1       romeo-c022 
 ---- sortie du job ----
-== Job 784131 : 2 nœud(s) [romeo-c[021-022]], 8 tâches
+== Job 784149 : 2 nœud(s) [romeo-c[021-022]], 8 tâches
 == Environnement : ROMEO (romeo_load_x64cpu_env, Spack partagé)
-   [...]
-FAILED: srun a renvoyé 1
-Verdict : échec du JOB (FAILED, ExitCode=1:0)
-[code retour : 1]
+  rangs 0 à 3 sur romeo-c021   [4 lignes regroupées]
+  rangs 4 à 7 sur romeo-c022   [4 lignes regroupées]
+MPI test passed with 8 ranks on 2 host(s)
+SUCCESS: MPI test passed (8 rangs sur 2 nœuds)
+Verdict : succès
+[code retour : 0]
