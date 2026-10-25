@@ -4,10 +4,6 @@ Run https://github.com/orrnithogalum/mpiflow/actions/runs/40209045347
   jobs ignorés  : test, package, test_slurm
 
 --- job build ---
-##[command]/usr/bin/docker exec  fff0dea9cc089b16c1088b757ab42642fb388e33669befbdea445c1ac8b9008e sh -c "cat /etc/*release | grep ^ID"
-[command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
 /__w/mpiflow/mpiflow/tests/test_mpi.c:104:19: error: expected ';' before 'return'
       |                   ^
 Error: Process completed with exit code 2.
-##[command]/usr/bin/docker exec  fff0dea9cc089b16c1088b757ab42642fb388e33669befbdea445c1ac8b9008e sh -c "cat /etc/*release | grep ^ID"
-[command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:

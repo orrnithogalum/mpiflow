@@ -14,5 +14,6 @@ JobID               JobName      State ExitCode    Elapsed   NNodes         Node
 == Environnement : ROMEO (romeo_load_x64cpu_env, Spack partagé)
 [rang 1] panne simulée (MPIFLOW_CRASH_RANK)
    [...]
+FAILED: mpirun a renvoyé 134
 Verdict : échec du JOB (FAILED, ExitCode=6:0)
 [code retour : 1]

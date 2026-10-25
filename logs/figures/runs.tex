@@ -1,11 +1,11 @@
 % généré par scripts/figures.py : ne pas modifier à la main
 \begin{tikzpicture}[font=\sffamily\footnotesize]
-\node[anchor=base, font=\ttfamily\scriptsize] at (5.8,0.35) {lint};
-\node[anchor=base, font=\ttfamily\scriptsize] at (7.62,0.35) {build};
-\node[anchor=base, font=\ttfamily\scriptsize] at (9.44,0.35) {test};
-\node[anchor=base, font=\ttfamily\scriptsize] at (11.26,0.35) {registry\_login};
-\node[anchor=base, font=\ttfamily\scriptsize] at (13.08,0.35) {package};
-\node[anchor=base, font=\ttfamily\scriptsize] at (14.899999999999999,0.35) {test\_slurm};
+\node[anchor=south, align=center, font=\ttfamily\scriptsize] at (5.8,0.2) {lint};
+\node[anchor=south, align=center, font=\ttfamily\scriptsize] at (7.62,0.2) {build};
+\node[anchor=south, align=center, font=\ttfamily\scriptsize] at (9.44,0.2) {test};
+\node[anchor=south, align=center, font=\ttfamily\scriptsize] at (11.26,0.2) {registry\_\\[-2pt]login};
+\node[anchor=south, align=center, font=\ttfamily\scriptsize] at (13.08,0.2) {package};
+\node[anchor=south, align=center, font=\ttfamily\scriptsize] at (14.899999999999999,0.2) {test\_\\[-2pt]slurm};
 \fill[black!4] (0,-0.5) rectangle (15.499999999999998,0.0);
 \node[anchor=west] at (0.05,-0.25) {push sur \texttt{main}};
 \draw[black!35] (5.8,-0.25) circle (0.11);
@@ -55,13 +55,28 @@
 \fill[oiVert] (11.26,-3.25) circle (0.15);
 \fill[oiVermillon] (13.08,-3.25) circle (0.15);\draw[white, line width=1.1pt] (13.08-0.07,-3.25-0.07) -- (13.08+0.07,-3.25+0.07) (13.08-0.07,-3.25+0.07) -- (13.08+0.07,-3.25-0.07);
 \draw[black!35] (14.899999999999999,-3.25) circle (0.11);
-\fill[oiVert] (0.2,-3.95) circle (0.15);
-\node[anchor=west, font=\sffamily\scriptsize] at (0.4,-3.95) {réussi};
-\fill[oiVermillon] (2.1,-3.95) circle (0.15);\draw[white, line width=1.1pt] (2.1-0.07,-3.95-0.07) -- (2.1+0.07,-3.95+0.07) (2.1-0.07,-3.95+0.07) -- (2.1+0.07,-3.95-0.07);
-\node[anchor=west, font=\sffamily\scriptsize] at (2.3000000000000003,-3.95) {échoué};
-\fill[oiOrange] (4.0,-3.95) circle (0.15);\draw[white, line width=1.3pt] (4.0-0.08,-3.95) -- (4.0+0.08,-3.95);
-\node[anchor=west, font=\sffamily\scriptsize] at (4.2,-3.95) {annulé};
-\draw[black!35] (6.0,-3.95) circle (0.11);
-\node[anchor=west, font=\sffamily\scriptsize] at (6.2,-3.95) {non exécuté (condition fausse ou dépendance en échec)};
+\node[anchor=west] at (0.05,-3.75) {lancement manuel, ROMEO};
+\draw[black!35] (5.8,-3.75) circle (0.11);
+\fill[oiVert] (7.62,-3.75) circle (0.15);
+\fill[oiVert] (9.44,-3.75) circle (0.15);
+\fill[oiVert] (11.26,-3.75) circle (0.15);
+\draw[black!35] (13.08,-3.75) circle (0.11);
+\fill[oiVert] (14.899999999999999,-3.75) circle (0.15);
+\fill[black!4] (0,-4.5) rectangle (15.499999999999998,-4.0);
+\node[anchor=west] at (0.05,-4.25) {lancement manuel, annulé};
+\draw[black!35] (5.8,-4.25) circle (0.11);
+\fill[oiVert] (7.62,-4.25) circle (0.15);
+\fill[oiVert] (9.44,-4.25) circle (0.15);
+\fill[oiVert] (11.26,-4.25) circle (0.15);
+\draw[black!35] (13.08,-4.25) circle (0.11);
+\fill[oiOrange] (14.899999999999999,-4.25) circle (0.15);\draw[white, line width=1.3pt] (14.899999999999999-0.08,-4.25) -- (14.899999999999999+0.08,-4.25);
+\fill[oiVert] (0.2,-4.95) circle (0.15);
+\node[anchor=west, font=\sffamily\scriptsize] at (0.4,-4.95) {réussi};
+\fill[oiVermillon] (2.1,-4.95) circle (0.15);\draw[white, line width=1.1pt] (2.1-0.07,-4.95-0.07) -- (2.1+0.07,-4.95+0.07) (2.1-0.07,-4.95+0.07) -- (2.1+0.07,-4.95-0.07);
+\node[anchor=west, font=\sffamily\scriptsize] at (2.3000000000000003,-4.95) {échoué};
+\fill[oiOrange] (4.0,-4.95) circle (0.15);\draw[white, line width=1.3pt] (4.0-0.08,-4.95) -- (4.0+0.08,-4.95);
+\node[anchor=west, font=\sffamily\scriptsize] at (4.2,-4.95) {annulé};
+\draw[black!35] (6.0,-4.95) circle (0.11);
+\node[anchor=west, font=\sffamily\scriptsize] at (6.2,-4.95) {non exécuté (condition fausse ou dépendance en échec)};
 \end{tikzpicture}
 \captionof{figure}{Jobs exécutés selon l'événement déclencheur, d'après les runs GitHub Actions du dépôt (\texttt{logs/github/runs.json}). Une ligne par run ; \texttt{test\_slurm} tourne sur le runner auto-hébergé \texttt{romeo-ssh}, qui soumet sur ROMEO, les autres jobs sur les runners de GitHub.}\label{fig:runs}

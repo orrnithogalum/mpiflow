@@ -75,5 +75,41 @@
    "package": "failure",
    "test_slurm": "skipped"
   }
+ },
+ "hpc-polling": {
+  "titre": "workflow_dispatch, test_slurm (polling)",
+  "url": "https://github.com/orrnithogalum/mpiflow/actions/runs/40210055278",
+  "jobs": {
+   "registry_login": "success",
+   "build": "success",
+   "lint": "skipped",
+   "test": "success",
+   "test_slurm": "success",
+   "package": "skipped"
+  }
+ },
+ "hpc-wait": {
+  "titre": "workflow_dispatch, test_slurm (wait)",
+  "url": "https://github.com/orrnithogalum/mpiflow/actions/runs/40210290484",
+  "jobs": {
+   "registry_login": "success",
+   "build": "success",
+   "lint": "skipped",
+   "test": "success",
+   "test_slurm": "success",
+   "package": "skipped"
+  }
+ },
+ "hpc-annulation": {
+  "titre": "workflow_dispatch, annulé pendant l'attente",
+  "url": "https://github.com/orrnithogalum/mpiflow/actions/runs/40210471986",
+  "jobs": {
+   "build": "success",
+   "registry_login": "success",
+   "lint": "skipped",
+   "test": "success",
+   "test_slurm": "cancelled",
+   "package": "skipped"
+  }
  }
 }
