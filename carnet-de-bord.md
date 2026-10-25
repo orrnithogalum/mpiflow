@@ -66,16 +66,16 @@ Le workflow (listing 1) enchaîne deux jobs dans l’image `gcc:13-bookworm`, o�
 
 Sur `main`, le run réussit (listing 2) : les deux tests CTest passent et le test MPI affiche `4 ranks on 1 host(s)`.
 
-    Run https://github.com/orrnithogalum/mpiflow/actions/runs/40208605871
-    (push sur main, commit daf94f0) : success
+    Run https://github.com/orrnithogalum/mpiflow/actions/runs/40212349681
+    (push sur main, commit 5b5ed3e) : success
       jobs exécutés : build success, test success, registry_login success
       jobs ignorés  : lint, package, test_slurm
 
     --- job test (extrait) ---
-    1/2 Test #1: mpi_bcast_np1 ....................   Passed    0.30 sec
-    2/2 Test #2: mpi_bcast_np4 ....................   Passed    0.34 sec
+    1/2 Test #1: mpi_bcast_np1 ....................   Passed    0.33 sec
+    2/2 Test #2: mpi_bcast_np4 ....................   Passed    0.37 sec
     100% tests passed, 0 tests failed out of 2
-      rangs 0 à 3 sur 802cbc5d2e66   [4 lignes regroupées]
+      rangs 0 à 3 sur 5a615e34bb92   [4 lignes regroupées]
     MPI test passed with 4 ranks on 1 host(s)
 
     --- job registry_login ---
@@ -117,8 +117,8 @@ Les deux exécutions réagissent aussi différemment aux pannes : quand un rang 
 
 Chaque job démarre dans un environnement neuf. Sur GitHub, `test` reçoit une nouvelle VM et un nouveau conteneur, sans le répertoire `build/` du job précédent. Sans `needs`, GitHub le lance en même temps que `build`, sur une autre machine : quand il demande l’artefact, celui-ci n’existe pas encore, et le téléchargement échoue alors que le build réussit (figure 2, deuxième ligne, et listing 3). `needs` impose l’ordre d’exécution et garantit que l’artefact est publié avant d’être demandé.
 
-    Run https://github.com/orrnithogalum/mpiflow/actions/runs/40208780629
-    (workflow_dispatch, test sans needs, commit 8acb4e9) : failure
+    Run https://github.com/orrnithogalum/mpiflow/actions/runs/40213004747
+    (workflow_dispatch, test sans needs, commit 4ed07c4) : failure
       jobs exécutés : build success, test failure, registry_login success
       jobs ignorés  : lint, package, test_slurm
 
@@ -182,10 +182,10 @@ Trois jobs s’ajoutent au pipeline (listing 5). Le job `lint` lance `cppcheck` 
 
 La figure 2 montre l’effet des règles. Le commit de la pull request ne crée qu’un run, où `lint` échoue sur l’écriture hors du tableau ajoutée volontairement (listing 6). Le tag `v0.1.0` déclenche `package`, qui produit l’archive et sa somme de contrôle ; son log n’affiche le secret que sous la forme `***` (listing 7). Le tag `v0.1.0-rc1` ne déclenche aucun run (`logs/github/m2-rc1.txt`).
 
-    Pull request https://github.com/orrnithogalum/mpiflow/pull/5
-    runs créés pour le commit 8c743b2 : 1 (pull_request)
-    Run https://github.com/orrnithogalum/mpiflow/actions/runs/40208862294
-    (pull_request, commit 8c743b2) : failure
+    Pull request https://github.com/orrnithogalum/mpiflow/pull/2
+    runs créés pour le commit 07aa55f : 1 (pull_request)
+    Run https://github.com/orrnithogalum/mpiflow/actions/runs/40213128458
+    (pull_request, commit 07aa55f) : failure
       jobs exécutés : lint failure, build success, test success, registry_login success
       jobs ignorés  : package, test_slurm
 
@@ -206,27 +206,27 @@ La figure 2 montre l’effet des règles. Le commit de la pull request ne crée 
 
     --- job registry_login (pull request) ---
     > Run echo "ref=${GITHUB_REF} événement=${GITHUB_EVENT_NAME}"
-    ref=refs/pull/5/merge événement=pull_request
+    ref=refs/pull/2/merge événement=pull_request
     FAKE_REGISTRY_TOKEN vide : secret non transmis à ce job
 
 *Listing 6. Pull request avec une erreur volontaire (`logs/extraits/github-m2-pr.txt`)*
 
-    Run https://github.com/orrnithogalum/mpiflow/actions/runs/40209131944
-    (push du tag v0.1.0, commit b6b370a) : success
+    Run https://github.com/orrnithogalum/mpiflow/actions/runs/40213388834
+    (push du tag v0.1.0, commit 1ee203b) : success
       jobs exécutés : build success, test success, registry_login success, package success
       jobs ignorés  : lint, test_slurm
 
     --- job package ---
-    - build (ID: 12604024181, Size: 51027, Expected Digest: sha256:48edaafecc7ad706d6968d1a2bd1f1ee73abccecfca78e56d7e936dc1ab05fa1)
-    9e80eb3595099bb359340ec7bb73a9008a5488b82d5fd5c9f157344d46cb81eb  mpiflow-v0.1.0-linux-x86_64.tar.gz
+    - build (ID: 12605749003, Size: 51017, Expected Digest: sha256:6123a90920a322dd35b6dbdefc69a14639190f9ff210dfa8553261bdebc8baf5)
+    7d0e37d86fc915daf179c907e2b3655894adcc4ffcb56673395782caa26c4d3c  mpiflow-v0.1.0-linux-x86_64.tar.gz
     > Run echo "test de masquage : ${FAKE_REGISTRY_TOKEN}"
     test de masquage : ***
     Login Succeeded (simulation) : ci-user@ghcr.io, secret de 24 caractères reçu via stdin
       path: dist/*.tar.gz
 
     artefacts du run :
-      package : 6126 o
-      build : 51027 o
+      package : 6122 o
+      build : 51017 o
 
 *Listing 7. Run du tag `v0.1.0` (`logs/extraits/github-m2-tag.txt`)*
 
@@ -242,8 +242,8 @@ Il faut écrire `rules:`. La documentation de GitLab range `only` et `except` pa
 
 Sur GitLab, la variable n’est pas injectée : le job démarre sans erreur, avec une variable vide. Notre job `registry_login` l’affiche alors (`FAKE_REGISTRY_TOKEN vide`), et `fake_docker_login.sh` refuse un secret vide plutôt que de continuer sans identifiant. GitHub va plus loin avec un secret d’environnement : un job qui ne déclare pas l’environnement ne le reçoit pas, et un job qui le déclare depuis une référence non autorisée est refusé avant de démarrer. Forcé depuis `main`, le job `package` échoue ainsi sur la règle de protection de l’environnement `release` (listing 8).
 
-    Run https://github.com/orrnithogalum/mpiflow/actions/runs/40209355375
-    (workflow_dispatch sur main, publier=true, commit daf94f0) : failure
+    Run https://github.com/orrnithogalum/mpiflow/actions/runs/40213647674
+    (workflow_dispatch sur main, publier=true, commit 5b5ed3e) : failure
       jobs exécutés : build success, test success, registry_login success, package failure
       jobs ignorés  : lint, test_slurm
 
@@ -321,27 +321,27 @@ GitHub Actions n’a pas d’équivalent de `retry:`. Sur GitLab, `retry: when: 
 
 Lancé depuis GitHub (listing 11), `test_slurm` copie le dépôt sur ROMEO, compile avec l’Open MPI de l’installation partagée, soumet le job et le suit jusqu’à `COMPLETED` : les huit rangs se répartissent sur deux nœuds, et l’étape d’annulation constate qu’il n’y a rien à annuler.
 
-    Run https://github.com/orrnithogalum/mpiflow/actions/runs/40210055278
-    (workflow_dispatch, méthode polling, commit daf94f0) : success
+    Run https://github.com/orrnithogalum/mpiflow/actions/runs/40214446951
+    (workflow_dispatch, méthode polling, commit 5b5ed3e) : success
       jobs exécutés : build success, test success, registry_login success, test_slurm success
       jobs ignorés  : lint, package
 
     --- job test_slurm (runner romeo-ssh, SSH vers ROMEO) ---
     > Run actions/checkout@v7
     > Run bash romeo/ci_ssh.sh sync
-    dépôt copié dans ~/mpiflow-ci/40210055278-1 sur romeo
+    dépôt copié dans ~/mpiflow-ci/40214446951-1 sur romeo
     > Run read -ra opts <<< "$SBATCH_OPTS"
     environnement : ROMEO (romeo_load_x64cpu_env, Spack partagé)
-    mpicc : /gpfs/home/sgmrowe/mpiflow-ci/40210055278-1/spack/romeo/.spack-env/view/bin/mpicc (gcc (GCC) 11.5.0 20240719 (Red Hat 11.5.0-5))
-    Job Slurm 784163 soumis (2026-10-25T17:08:15+01:00)
-    [17:08:15] +    0s  job 784163  PENDING    raison=None
-    [17:08:30] +   15s  job 784163  COMPLETED
+    mpicc : /gpfs/home/sgmrowe/mpiflow-ci/40214446951-1/spack/romeo/.spack-env/view/bin/mpicc (gcc (GCC) 11.5.0 20240719 (Red Hat 11.5.0-5))
+    Job Slurm 784189 soumis (2026-10-25T18:03:11+01:00)
+    [18:03:11] +    0s  job 784189  PENDING    raison=None
+    [18:03:26] +   15s  job 784189  COMPLETED
     ---- sacct ----
     JobID               JobName      State ExitCode    Elapsed   NNodes         NodeList
-    784163           ci-mpiflow  COMPLETED      0:0   00:00:04        2 romeo-c[021-022]
-    784163.batch          batch  COMPLETED      0:0   00:00:04        1       romeo-c021
-    784163.exte+         extern  COMPLETED      0:0   00:00:04        2 romeo-c[021-022]
-    784163.0              prted  COMPLETED      0:0   00:00:05        1       romeo-c022
+    784189           ci-mpiflow  COMPLETED      0:0   00:00:04        2 romeo-c[021-022]
+    784189.batch          batch  COMPLETED      0:0   00:00:04        1       romeo-c021
+    784189.exte+         extern  COMPLETED      0:0   00:00:04        2 romeo-c[021-022]
+    784189.0              prted  COMPLETED      0:0   00:00:05        1       romeo-c022
     ---- sortie du job ----
       rangs 0 à 3 sur romeo-c021   [4 lignes regroupées]
       rangs 4 à 7 sur romeo-c022   [4 lignes regroupées]
@@ -349,7 +349,7 @@ Lancé depuis GitHub (listing 11), `test_slurm` copie le dépôt sur ROMEO, comp
     SUCCESS: MPI test passed (8 rangs sur 2 nœuds)
     Verdict : succès
     > Run bash romeo/ci_ssh.sh cancel
-    job 784163 terminé, rien à annuler
+    job 784189 terminé, rien à annuler
     > Run bash romeo/ci_ssh.sh fetch
     > Run actions/upload-artifact@v7
 
@@ -366,39 +366,37 @@ généré par scripts/figures.py : ne pas modifier à la main
 Un rang qui plante donne `FAILED` en quelques secondes, parce que le lanceur arrête alors les autres rangs (`mpirun`, de lui-même) ; un rang bloqué retient au contraire les autres dans la collective, et seul le wall-time de Slurm y met fin (`TIMEOUT`). Un job qui en attend un autre reste en `PENDING`, avec la raison `Dependency`, puis s’exécute. Dans le scénario « attente, timeout CI », le suivi est coupé alors que le job attend encore : sans le `scancel` de l’étape de nettoyage, il resterait en file. Enfin, un centre de production ne nous laisse pas provoquer une panne de nœud : nous remettons le job en file avec `scontrol requeue`, ce que Slurm fait lui-même après une panne (listing 12). Le script rend 75 et le job remis en file est annulé ; la vraie panne, `slurmd` tué, a été provoquée sur le mini-cluster local (`logs/m3-nodefail.txt`).
 
     $ MPIFLOW_HANG_RANK=1 POLL_INTERVAL=10 ./slurm/submit_and_poll.sh slurm/job_ci.sh --time=00:03:00 --requeue     # pendant le job : scontrol requeue <job>
-    Job Slurm 784159 soumis (2026-10-25T17:04:35+01:00)
-    [17:04:35] +    0s  job 784159  PENDING    raison=None
-    [17:04:45] +   10s  job 784159  RUNNING    raison=None
-    [17:04:55] +   20s  job 784159  REQUEUED   raison=None
+    Job Slurm 784188 soumis (2026-10-25T17:59:03+01:00)
+    [17:59:03] +    0s  job 784188  PENDING    raison=None
+    [17:59:13] +   10s  job 784188  RUNNING    raison=None
+    [17:59:23] +   20s  job 784188  REQUEUED   raison=None
     job remis en file par Slurm (Restarts=1) : on ne l'attend pas
     ---- sacct ----
     JobID               JobName      State ExitCode    Elapsed   NNodes         NodeList 
     ------------ -------------- ---------- -------- ---------- -------- ---------------- 
-    784159           ci-mpiflow   REQUEUED      0:0   00:00:20        2 romeo-c[021-022] 
-    784159.batch          batch  CANCELLED     0:15   00:00:21        1       romeo-c021 
-    784159.exte+         extern  COMPLETED      0:0   00:00:20        2 romeo-c[021-022] 
-    784159.0              prted  CANCELLED     0:15   00:00:23        1       romeo-c022 
-    784159           ci-mpiflow    PENDING      0:0   00:00:00        2    None assigned 
+    784188           ci-mpiflow   REQUEUED      0:0   00:00:20        2 romeo-c[021-022] 
+    784188.batch          batch  CANCELLED     0:15   00:00:21        1       romeo-c021 
+    784188.exte+         extern  COMPLETED      0:0   00:00:20        2 romeo-c[021-022] 
+    784188.0              prted  CANCELLED     0:15   00:00:23        1       romeo-c022 
     ---- sortie du job ----
-    == Job 784159 : 2 nœud(s) [romeo-c[021-022]], 8 tâches
+    == Job 784188 : 2 nœud(s) [romeo-c[021-022]], 8 tâches
     == Environnement : ROMEO (romeo_load_x64cpu_env, Spack partagé)
     [rang 1] blocage simulé (MPIFLOW_HANG_RANK)
-    slurmstepd: error: *** JOB 784159 ON romeo-c021 CANCELLED AT 2026-10-25T17:04:55 DUE TO JOB REQUEUE ***
+    slurmstepd: error: *** JOB 784188 ON romeo-c021 CANCELLED AT 2026-10-25T17:59:23 DUE TO JOB REQUEUE ***
     Verdict : échec d'INFRASTRUCTURE (REQUEUED) -> relance possible
     [code retour : 75]
-    $ sacct -X -D -j 784159 -o JobID,State,Start,End      # juste après le verdict
+    $ sacct -X -D -j 784188 -o JobID,State,Start,End      # juste après le verdict
     JobID             State               Start                 End 
     ------------ ---------- ------------------- ------------------- 
-    784159         REQUEUED 2026-10-25T17:04:35 2026-10-25T17:04:55 
-    784159          PENDING             Unknown             Unknown 
-    $ scancel 784159      # étape de nettoyage du job CI
+    784188         REQUEUED 2026-10-25T17:59:03 2026-10-25T17:59:23 
+    $ scancel 784188      # étape de nettoyage du job CI
 
 *Listing 12. Remise en file pendant le job (extrait) (`logs/extraits/romeo-m3-requeue.txt`)*
 
 Le même nettoyage a été vérifié depuis GitHub : un run annulé pendant que le job attendait en file laisse l’étape d’annulation supprimer le job Slurm (listing 13).
 
-    Run https://github.com/orrnithogalum/mpiflow/actions/runs/40210471986
-    (workflow_dispatch annulé, job Slurm en attente, commit daf94f0) : cancelled
+    Run https://github.com/orrnithogalum/mpiflow/actions/runs/40214844255
+    (workflow_dispatch annulé, job Slurm en attente, commit 5b5ed3e) : cancelled
       jobs exécutés : build success, test success, registry_login success, test_slurm cancelled
       jobs ignorés  : lint, package
 
@@ -416,19 +414,19 @@ Le même nettoyage a été vérifié depuis GitHub : un run annulé pendant que 
     --- job test_slurm ---
     > Run actions/checkout@v7
     > Run bash romeo/ci_ssh.sh sync
-    dépôt copié dans ~/mpiflow-ci/40210471986-1 sur romeo
+    dépôt copié dans ~/mpiflow-ci/40214844255-1 sur romeo
     > Run read -ra opts <<< "$SBATCH_OPTS"
     environnement : ROMEO (romeo_load_x64cpu_env, Spack partagé)
-    mpicc : /gpfs/home/sgmrowe/mpiflow-ci/40210471986-1/spack/romeo/.spack-env/view/bin/mpicc (gcc (GCC) 11.5.0 20240719 (Red Hat 11.5.0-5))
-    Job Slurm 784165 soumis (2026-10-25T17:13:34+01:00)
-    [17:13:34] +    0s  job 784165  PENDING    raison=BeginTime
-       début estimé par Slurm : 2026-10-25T17:23:34
-    [17:13:50] +   16s  job 784165  PENDING    raison=BeginTime
-    [17:14:05] +   31s  job 784165  PENDING    raison=BeginTime
-    [17:14:20] +   46s  job 784165  PENDING    raison=BeginTime
+    mpicc : /gpfs/home/sgmrowe/mpiflow-ci/40214844255-1/spack/romeo/.spack-env/view/bin/mpicc (gcc (GCC) 11.5.0 20240719 (Red Hat 11.5.0-5))
+    Job Slurm 784192 soumis (2026-10-25T18:08:14+01:00)
+    [18:08:14] +    0s  job 784192  PENDING    raison=BeginTime
+       début estimé par Slurm : 2026-10-25T18:18:14
+    [18:08:29] +   15s  job 784192  PENDING    raison=BeginTime
+    [18:08:44] +   30s  job 784192  PENDING    raison=BeginTime
+    [18:09:00] +   46s  job 784192  PENDING    raison=BeginTime
     Error: The operation was canceled.
     > Run bash romeo/ci_ssh.sh cancel
-    job 784165 encore présent : scancel
+    job 784192 encore présent : scancel
     > Run bash romeo/ci_ssh.sh fetch
     > Run actions/upload-artifact@v7
 
@@ -453,19 +451,19 @@ Côté CI, le job est « en cours » : le runner exécute la boucle de suivi et 
 Pour le rendre observable, notre script affiche à chaque tour l’heure, le temps écoulé, l’état et la raison donnée par Slurm (`Resources`, `Priority`, `Dependency`, `BeginTime`...), puis l’heure de démarrage estimée par `squeue --start`, qui vaut `N/A` tant que l’ordonnanceur n’a rien calculé (listing 14). On peut aller plus loin avec `sbatch --test-only` avant de soumettre, une partition réservée aux tests, ou une alerte au-delà d’un seuil d’attente.
 
     $ sbatch --wrap 'sleep 45' ; ./slurm/submit_and_poll.sh slurm/job_ci.sh --dependency=afterany:<job>
-    job 784155 soumis : le job du CI l'attend
-    Job Slurm 784156 soumis (2026-10-25T17:02:53+01:00)
-    [17:02:54] +    1s  job 784156  PENDING    raison=Dependency
+    job 784184 soumis : le job du CI l'attend
+    Job Slurm 784185 soumis (2026-10-25T17:57:21+01:00)
+    [17:57:22] +    1s  job 784185  PENDING    raison=Dependency
        début estimé par Slurm : N/A
-    [17:03:04] +   11s  job 784156  PENDING    raison=Dependency
+    [17:57:32] +   11s  job 784185  PENDING    raison=Dependency
        [... 2 relevés identiques ...]
-    [17:03:34] +   41s  job 784156  PENDING    raison=Dependency
-    [17:03:44] +   51s  job 784156  COMPLETED  
+    [17:58:02] +   41s  job 784185  PENDING    raison=Dependency
+    [17:58:12] +   51s  job 784185  COMPLETED  
     ---- sacct ----
     JobID               JobName      State ExitCode    Elapsed   NNodes         NodeList 
     ------------ -------------- ---------- -------- ---------- -------- ---------------- 
-    784156           ci-mpiflow  COMPLETED      0:0   00:00:03        2 romeo-c[021-022] 
-    784156.batch          batch  COMPLETED      0:0   00:00:03        1       romeo-c021 
+    784185           ci-mpiflow  COMPLETED      0:0   00:00:03        2 romeo-c[021-022] 
+    784185.batch          batch  COMPLETED      0:0   00:00:03        1       romeo-c021 
 
 *Listing 14. Job du CI en attente d’un autre job sur ROMEO (début) (`logs/extraits/romeo-m3-dependance.txt`)*
 

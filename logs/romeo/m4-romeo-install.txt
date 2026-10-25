@@ -1,6 +1,6 @@
 $ time spack -e spack/romeo install --fail-fast
-[+] /apps/2025/spack_install/linux-rhel9-zen4/linux-rhel9-zen4/aocc-4.2.0/cmake-3.31.8-56vu72qwyutk7em2iklj7mqul6bx5rgv
 [+] /apps/2025/spack_install/linux-rhel9-zen4/linux-rhel9-zen4/aocc-5.0.0/krb5-1.21.3-z4bbnp45ms3yywaeefvoazlsuvwlpbab
+[+] /apps/2025/spack_install/linux-rhel9-zen4/linux-rhel9-zen4/aocc-4.2.0/cmake-3.31.8-56vu72qwyutk7em2iklj7mqul6bx5rgv
 [+] /apps/2025/spack_install/linux-rhel9-zen4/linux-rhel9-zen4/aocc-5.0.0/openssh-9.9p1-r5zsu232joi6vgv2r3nibfclunmrpgra
 [+] /apps/2025/spack_install/linux-rhel9-zen4/linux-rhel9-zen4/gcc-11.4.1/openmpi-5.0.5-lni3xp2q7ts2btrkm3rt3ciz6laogc6y
 durée : 0m5s

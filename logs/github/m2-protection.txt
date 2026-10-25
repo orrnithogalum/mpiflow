@@ -1,11 +1,11 @@
-Run https://github.com/orrnithogalum/mpiflow/actions/runs/40209355375
-(workflow_dispatch sur main, publier=true, commit daf94f0) : failure
+Run https://github.com/orrnithogalum/mpiflow/actions/runs/40213647674
+(workflow_dispatch sur main, publier=true, commit 5b5ed3e) : failure
   job              résultat     durée
   lint             skipped      -
-  build            success      51 s
+  build            success      42 s
   test             success      52 s
   registry_login   success      4 s
-  package          failure      1 s
+  package          failure      3 s
   test_slurm       skipped      -
 
 --- job package ---

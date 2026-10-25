@@ -1,9 +1,9 @@
-Run https://github.com/orrnithogalum/mpiflow/actions/runs/40208780629
-(workflow_dispatch, test sans needs, commit 8acb4e9) : failure
+Run https://github.com/orrnithogalum/mpiflow/actions/runs/40213004747
+(workflow_dispatch, test sans needs, commit 4ed07c4) : failure
   job              résultat     durée
   lint             skipped      -
-  build            success      40 s
-  test             failure      39 s
+  build            success      60 s
+  test             failure      52 s
   registry_login   success      5 s
   package          skipped      -
   test_slurm       skipped      -

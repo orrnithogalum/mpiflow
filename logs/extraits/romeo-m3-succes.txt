@@ -1,16 +1,16 @@
 $ POLL_INTERVAL=10 ./slurm/submit_and_poll.sh slurm/job_ci.sh
-Job Slurm 784149 soumis (2026-10-25T17:00:31+01:00)
-[17:00:31] +    0s  job 784149  PENDING    raison=None
-[17:00:41] +   10s  job 784149  COMPLETED  
+Job Slurm 784178 soumis (2026-10-25T17:54:49+01:00)
+[17:54:49] +    0s  job 784178  PENDING    raison=None
+[17:54:59] +   10s  job 784178  COMPLETED  
 ---- sacct ----
 JobID               JobName      State ExitCode    Elapsed   NNodes         NodeList 
 ------------ -------------- ---------- -------- ---------- -------- ---------------- 
-784149           ci-mpiflow  COMPLETED      0:0   00:00:04        2 romeo-c[021-022] 
-784149.batch          batch  COMPLETED      0:0   00:00:04        1       romeo-c021 
-784149.exte+         extern  COMPLETED      0:0   00:00:04        2 romeo-c[021-022] 
-784149.0              prted  COMPLETED      0:0   00:00:03        1       romeo-c022 
+784178           ci-mpiflow  COMPLETED      0:0   00:00:04        2 romeo-c[021-022] 
+784178.batch          batch  COMPLETED      0:0   00:00:04        1       romeo-c021 
+784178.exte+         extern  COMPLETED      0:0   00:00:04        2 romeo-c[021-022] 
+784178.0              prted  COMPLETED      0:0   00:00:05        1       romeo-c022 
 ---- sortie du job ----
-== Job 784149 : 2 nœud(s) [romeo-c[021-022]], 8 tâches
+== Job 784178 : 2 nœud(s) [romeo-c[021-022]], 8 tâches
 == Environnement : ROMEO (romeo_load_x64cpu_env, Spack partagé)
   rangs 0 à 3 sur romeo-c021   [4 lignes regroupées]
   rangs 4 à 7 sur romeo-c022   [4 lignes regroupées]

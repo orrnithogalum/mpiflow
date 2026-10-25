@@ -1,5 +1,5 @@
-Run https://github.com/orrnithogalum/mpiflow/actions/runs/40209355375
-(workflow_dispatch sur main, publier=true, commit daf94f0) : failure
+Run https://github.com/orrnithogalum/mpiflow/actions/runs/40213647674
+(workflow_dispatch sur main, publier=true, commit 5b5ed3e) : failure
   jobs exécutés : build success, test success, registry_login success, package failure
   jobs ignorés  : lint, test_slurm
 

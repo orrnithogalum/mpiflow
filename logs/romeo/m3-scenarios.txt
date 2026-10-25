@@ -1,6 +1,6 @@
-784149|succès
-784153|un rang plante
-784154|un rang bloqué
-784156|attente d'un autre job
-784157|attente, timeout CI
-784159|remis en file
+784178|succès
+784182|un rang plante
+784183|un rang bloqué
+784185|attente d'un autre job
+784187|attente, timeout CI
+784188|remis en file

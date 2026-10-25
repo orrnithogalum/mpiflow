@@ -1,21 +1,21 @@
-Run https://github.com/orrnithogalum/mpiflow/actions/runs/40210290484
-(workflow_dispatch, méthode wait, commit daf94f0) : success
+Run https://github.com/orrnithogalum/mpiflow/actions/runs/40214643112
+(workflow_dispatch, méthode wait, commit 5b5ed3e) : success
   job              résultat     durée
   lint             skipped      -
-  build            success      42 s
-  test             success      39 s
-  registry_login   success      5 s
+  build            success      40 s
+  test             success      53 s
+  registry_login   success      4 s
   package          skipped      -
-  test_slurm       success      31 s
+  test_slurm       success      32 s
 
 --- job test_slurm (runner romeo-ssh, SSH vers ROMEO) ---
 > Run actions/checkout@v7
 > Run bash romeo/ci_ssh.sh sync
-dépôt copié dans ~/mpiflow-ci/40210290484-1 sur romeo
+dépôt copié dans ~/mpiflow-ci/40214643112-1 sur romeo
 > Run read -ra opts <<< "$SBATCH_OPTS"
 environnement : ROMEO (romeo_load_x64cpu_env, Spack partagé)
-mpicc : /gpfs/home/sgmrowe/mpiflow-ci/40210290484-1/spack/romeo/.spack-env/view/bin/mpicc (gcc (GCC) 11.5.0 20240719 (Red Hat 11.5.0-5))
-== mpicc : /gpfs/home/sgmrowe/mpiflow-ci/40210290484-1/spack/romeo/.spack-env/view/bin/mpicc
+mpicc : /gpfs/home/sgmrowe/mpiflow-ci/40214643112-1/spack/romeo/.spack-env/view/bin/mpicc (gcc (GCC) 11.5.0 20240719 (Red Hat 11.5.0-5))
+== mpicc : /gpfs/home/sgmrowe/mpiflow-ci/40214643112-1/spack/romeo/.spack-env/view/bin/mpicc
   rang 0 sur romeo-c021
   rang 1 sur romeo-c021
   rang 2 sur romeo-c021
@@ -27,6 +27,6 @@ mpicc : /gpfs/home/sgmrowe/mpiflow-ci/40210290484-1/spack/romeo/.spack-env/view/
 MPI test passed with 8 ranks on 2 host(s)
 SUCCESS: MPI test passed (8 rangs sur 2 nœuds)
 > Run bash romeo/ci_ssh.sh cancel
-job 784164 terminé, rien à annuler
+job 784190 terminé, rien à annuler
 > Run bash romeo/ci_ssh.sh fetch
 > Run actions/upload-artifact@v7

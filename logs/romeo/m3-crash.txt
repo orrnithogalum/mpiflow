@@ -1,40 +1,40 @@
 $ MPIFLOW_CRASH_RANK=1 POLL_INTERVAL=10 ./slurm/submit_and_poll.sh slurm/job_ci.sh
-Job Slurm 784153 soumis (2026-10-25T17:01:22+01:00)
-[17:01:22] +    0s  job 784153  PENDING    raison=None
-[17:01:32] +   10s  job 784153  FAILED     
+Job Slurm 784182 soumis (2026-10-25T17:55:40+01:00)
+[17:55:40] +    0s  job 784182  PENDING    raison=None
+[17:55:50] +   10s  job 784182  FAILED     
 ---- sacct ----
 JobID               JobName      State ExitCode    Elapsed   NNodes         NodeList 
 ------------ -------------- ---------- -------- ---------- -------- ---------------- 
-784153           ci-mpiflow     FAILED      6:0   00:00:04        2 romeo-c[021-022] 
-784153.batch          batch     FAILED      6:0   00:00:04        1       romeo-c021 
-784153.exte+         extern  COMPLETED      0:0   00:00:05        2 romeo-c[021-022] 
-784153.0              prted  COMPLETED      0:0   00:00:06        1       romeo-c022 
+784182           ci-mpiflow     FAILED      6:0   00:00:05        2 romeo-c[021-022] 
+784182.batch          batch     FAILED      6:0   00:00:05        1       romeo-c021 
+784182.exte+         extern  COMPLETED      0:0   00:00:05        2 romeo-c[021-022] 
+784182.0              prted  COMPLETED      0:0   00:00:06        1       romeo-c022 
 ---- sortie du job ----
-== Job 784153 : 2 nœud(s) [romeo-c[021-022]], 8 tâches
+== Job 784182 : 2 nœud(s) [romeo-c[021-022]], 8 tâches
 == Soumis depuis /gpfs/home/sgmrowe/mpiflow (commit hors CI)
 == Environnement : ROMEO (romeo_load_x64cpu_env, Spack partagé)
 == mpicc : /gpfs/home/sgmrowe/mpiflow/spack/romeo/.spack-env/view/bin/mpicc
 [rang 1] panne simulée (MPIFLOW_CRASH_RANK)
-[romeo-c021:2851033] *** Process received signal ***
-[romeo-c021:2851033] Signal: Aborted (6)
-[romeo-c021:2851033] Signal code:  (-6)
-[romeo-c021:2851033] [ 0] /lib64/libc.so.6(+0x3ebf0)[0x1534c063ebf0]
-[romeo-c021:2851033] [ 1] /lib64/libc.so.6(+0x8c07c)[0x1534c068c07c]
-[romeo-c021:2851033] [ 2] /lib64/libc.so.6(raise+0x16)[0x1534c063eb46]
-[romeo-c021:2851033] [ 3] /lib64/libc.so.6(abort+0xd3)[0x1534c0628833]
-[romeo-c021:2851033] [ 4] build-hpc/tests/test_mpi[0x401542]
-[romeo-c021:2851033] [ 5] /lib64/libc.so.6(+0x295d0)[0x1534c06295d0]
-[romeo-c021:2851033] [ 6] /lib64/libc.so.6(__libc_start_main+0x80)[0x1534c0629680]
-[romeo-c021:2851033] [ 7] build-hpc/tests/test_mpi[0x4015a5]
-[romeo-c021:2851033] *** End of error message ***
+[romeo-c021:2864831] *** Process received signal ***
+[romeo-c021:2864831] Signal: Aborted (6)
+[romeo-c021:2864831] Signal code:  (-6)
+[romeo-c021:2864831] [ 0] /lib64/libc.so.6(+0x3ebf0)[0x14d3b0e3ebf0]
+[romeo-c021:2864831] [ 1] /lib64/libc.so.6(+0x8c07c)[0x14d3b0e8c07c]
+[romeo-c021:2864831] [ 2] /lib64/libc.so.6(raise+0x16)[0x14d3b0e3eb46]
+[romeo-c021:2864831] [ 3] /lib64/libc.so.6(abort+0xd3)[0x14d3b0e28833]
+[romeo-c021:2864831] [ 4] build-hpc/tests/test_mpi[0x401542]
+[romeo-c021:2864831] [ 5] /lib64/libc.so.6(+0x295d0)[0x14d3b0e295d0]
+[romeo-c021:2864831] [ 6] /lib64/libc.so.6(__libc_start_main+0x80)[0x14d3b0e29680]
+[romeo-c021:2864831] [ 7] build-hpc/tests/test_mpi[0x4015a5]
+[romeo-c021:2864831] *** End of error message ***
 [romeo-c022:00000] *** An error occurred in Socket closed
-[romeo-c022:00000] *** reported by process [2161049601,6]
+[romeo-c022:00000] *** reported by process [3280535553,4]
 [romeo-c022:00000] *** on a NULL communicator
 [romeo-c022:00000] *** Unknown error
 [romeo-c022:00000] *** MPI_ERRORS_ARE_FATAL (processes in this communicator will now abort,
 [romeo-c022:00000] ***    and MPI will try to terminate your MPI job as well)
 --------------------------------------------------------------------------
-prterun noticed that process rank 1 with PID 2851033 on node romeo-c021 exited on
+prterun noticed that process rank 1 with PID 2864831 on node romeo-c021 exited on
 signal 6 (Aborted).
 --------------------------------------------------------------------------
 FAILED: mpirun a renvoyé 134

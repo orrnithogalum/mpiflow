@@ -1,14 +1,14 @@
 $ timeout 40 ./slurm/submit_and_poll.sh slurm/job_ci.sh --begin=now+10minutes ; scancel <job>
-Job Slurm 784157 soumis (2026-10-25T17:03:49+01:00)
-[17:03:50] +    1s  job 784157  PENDING    raison=BeginTime
-   début estimé par Slurm : 2026-10-25T17:13:49
-[17:04:00] +   11s  job 784157  PENDING    raison=BeginTime
-[17:04:10] +   21s  job 784157  PENDING    raison=BeginTime
-[17:04:20] +   31s  job 784157  PENDING    raison=BeginTime
+Job Slurm 784187 soumis (2026-10-25T17:58:17+01:00)
+[17:58:18] +    1s  job 784187  PENDING    raison=BeginTime
+   début estimé par Slurm : 2026-10-25T18:08:17
+[17:58:28] +   11s  job 784187  PENDING    raison=BeginTime
+[17:58:38] +   21s  job 784187  PENDING    raison=BeginTime
+[17:58:48] +   31s  job 784187  PENDING    raison=BeginTime
 poller arrêté (code 124) : timeout du job CI simulé
              JOBID PARTITION     NAME     USER ST       TIME  NODES NODELIST(REASON)
-            784157     short ci-mpifl  sgmrowe PD       0:00      2 (BeginTime)
+            784187     short ci-mpifl  sgmrowe PD       0:00      2 (BeginTime)
 JobID             JobName      State 
 ------------ ------------ ---------- 
-784157         ci-mpiflow CANCELLED+ 
+784187         ci-mpiflow CANCELLED+ 
 [code retour : 0]

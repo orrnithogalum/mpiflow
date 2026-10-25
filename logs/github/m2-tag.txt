@@ -1,21 +1,21 @@
-Run https://github.com/orrnithogalum/mpiflow/actions/runs/40209131944
-(push du tag v0.1.0, commit b6b370a) : success
+Run https://github.com/orrnithogalum/mpiflow/actions/runs/40213388834
+(push du tag v0.1.0, commit 1ee203b) : success
   job              résultat     durée
   lint             skipped      -
-  build            success      42 s
-  test             success      43 s
-  registry_login   success      6 s
-  package          success      10 s
+  build            success      52 s
+  test             success      41 s
+  registry_login   success      3 s
+  package          success      8 s
   test_slurm       skipped      -
 
 --- job package ---
-- build (ID: 12604024181, Size: 51027, Expected Digest: sha256:48edaafecc7ad706d6968d1a2bd1f1ee73abccecfca78e56d7e936dc1ab05fa1)
-9e80eb3595099bb359340ec7bb73a9008a5488b82d5fd5c9f157344d46cb81eb  mpiflow-v0.1.0-linux-x86_64.tar.gz
+- build (ID: 12605749003, Size: 51017, Expected Digest: sha256:6123a90920a322dd35b6dbdefc69a14639190f9ff210dfa8553261bdebc8baf5)
+7d0e37d86fc915daf179c907e2b3655894adcc4ffcb56673395782caa26c4d3c  mpiflow-v0.1.0-linux-x86_64.tar.gz
 > Run echo "test de masquage : ${FAKE_REGISTRY_TOKEN}"
 test de masquage : ***
 Login Succeeded (simulation) : ci-user@ghcr.io, secret de 24 caractères reçu via stdin
   path: dist/*.tar.gz
 
 artefacts du run :
-  package : 6126 o
-  build : 51027 o
+  package : 6122 o
+  build : 51017 o

@@ -1,21 +1,21 @@
 $ sbatch --wrap 'sleep 45' ; ./slurm/submit_and_poll.sh slurm/job_ci.sh --dependency=afterany:<job>
-job 784155 soumis : le job du CI l'attend
-Job Slurm 784156 soumis (2026-10-25T17:02:53+01:00)
-[17:02:54] +    1s  job 784156  PENDING    raison=Dependency
+job 784184 soumis : le job du CI l'attend
+Job Slurm 784185 soumis (2026-10-25T17:57:21+01:00)
+[17:57:22] +    1s  job 784185  PENDING    raison=Dependency
    début estimé par Slurm : N/A
-[17:03:04] +   11s  job 784156  PENDING    raison=Dependency
+[17:57:32] +   11s  job 784185  PENDING    raison=Dependency
    [... 2 relevés identiques ...]
-[17:03:34] +   41s  job 784156  PENDING    raison=Dependency
-[17:03:44] +   51s  job 784156  COMPLETED  
+[17:58:02] +   41s  job 784185  PENDING    raison=Dependency
+[17:58:12] +   51s  job 784185  COMPLETED  
 ---- sacct ----
 JobID               JobName      State ExitCode    Elapsed   NNodes         NodeList 
 ------------ -------------- ---------- -------- ---------- -------- ---------------- 
-784156           ci-mpiflow  COMPLETED      0:0   00:00:03        2 romeo-c[021-022] 
-784156.batch          batch  COMPLETED      0:0   00:00:03        1       romeo-c021 
-784156.exte+         extern  COMPLETED      0:0   00:00:03        2 romeo-c[021-022] 
-784156.0              prted  COMPLETED      0:0   00:00:04        1       romeo-c022 
+784185           ci-mpiflow  COMPLETED      0:0   00:00:03        2 romeo-c[021-022] 
+784185.batch          batch  COMPLETED      0:0   00:00:03        1       romeo-c021 
+784185.exte+         extern  COMPLETED      0:0   00:00:03        2 romeo-c[021-022] 
+784185.0              prted  COMPLETED      0:0   00:00:04        1       romeo-c022 
 ---- sortie du job ----
-== Job 784156 : 2 nœud(s) [romeo-c[021-022]], 8 tâches
+== Job 784185 : 2 nœud(s) [romeo-c[021-022]], 8 tâches
 == Environnement : ROMEO (romeo_load_x64cpu_env, Spack partagé)
   rangs 0 à 3 sur romeo-c021   [4 lignes regroupées]
   rangs 4 à 7 sur romeo-c022   [4 lignes regroupées]

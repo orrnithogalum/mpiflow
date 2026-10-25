@@ -1,5 +1,5 @@
-Run https://github.com/orrnithogalum/mpiflow/actions/runs/40209045347
-(pull_request, lint et build en échec, commit be28340) : failure
+Run https://github.com/orrnithogalum/mpiflow/actions/runs/40213299392
+(pull_request, lint et build en échec, commit ba23ad0) : failure
   jobs exécutés : lint failure, build failure, registry_login success
   jobs ignorés  : test, package, test_slurm
 

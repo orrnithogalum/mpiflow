@@ -1,29 +1,30 @@
 $ MPIFLOW_HANG_RANK=1 POLL_INTERVAL=10 ./slurm/submit_and_poll.sh slurm/job_ci.sh --time=00:01:00
-Job Slurm 784154 soumis (2026-10-25T17:01:37+01:00)
-[17:01:37] +    0s  job 784154  PENDING    raison=None
-[17:01:47] +   10s  job 784154  RUNNING    raison=None
-[17:01:58] +   21s  job 784154  RUNNING    raison=None
-[17:02:08] +   31s  job 784154  RUNNING    raison=None
-[17:02:18] +   41s  job 784154  RUNNING    raison=None
-[17:02:28] +   51s  job 784154  RUNNING    raison=None
-[17:02:38] +   61s  job 784154  RUNNING    raison=None
-[17:02:48] +   71s  job 784154  TIMEOUT    
+Job Slurm 784183 soumis (2026-10-25T17:55:55+01:00)
+[17:55:55] +    0s  job 784183  PENDING    raison=None
+[17:56:05] +   10s  job 784183  RUNNING    raison=None
+[17:56:15] +   20s  job 784183  RUNNING    raison=None
+[17:56:26] +   31s  job 784183  RUNNING    raison=None
+[17:56:36] +   41s  job 784183  RUNNING    raison=None
+[17:56:46] +   51s  job 784183  RUNNING    raison=None
+[17:56:56] +   61s  job 784183  RUNNING    raison=None
+[17:57:06] +   71s  job 784183  RUNNING    raison=None
+[17:57:16] +   81s  job 784183  TIMEOUT    
 ---- sacct ----
 JobID               JobName      State ExitCode    Elapsed   NNodes         NodeList 
 ------------ -------------- ---------- -------- ---------- -------- ---------------- 
-784154           ci-mpiflow    TIMEOUT      0:0   00:01:04        2 romeo-c[021-022] 
-784154.batch          batch  COMPLETED      0:0   00:01:05        1       romeo-c021 
-784154.exte+         extern  COMPLETED      0:0   00:01:04        2 romeo-c[021-022] 
-784154.0              prted  CANCELLED     0:15   00:01:07        1       romeo-c022 
+784183           ci-mpiflow    TIMEOUT      0:0   00:01:16        2 romeo-c[021-022] 
+784183.batch          batch  COMPLETED      0:0   00:01:17        1       romeo-c021 
+784183.exte+         extern  COMPLETED      0:0   00:01:16        2 romeo-c[021-022] 
+784183.0              prted  CANCELLED     0:15   00:01:19        1       romeo-c022 
 ---- sortie du job ----
-== Job 784154 : 2 nœud(s) [romeo-c[021-022]], 8 tâches
+== Job 784183 : 2 nœud(s) [romeo-c[021-022]], 8 tâches
 == Soumis depuis /gpfs/home/sgmrowe/mpiflow (commit hors CI)
 == Environnement : ROMEO (romeo_load_x64cpu_env, Spack partagé)
 == mpicc : /gpfs/home/sgmrowe/mpiflow/spack/romeo/.spack-env/view/bin/mpicc
 [rang 1] blocage simulé (MPIFLOW_HANG_RANK)
-slurmstepd: error: *** JOB 784154 ON romeo-c021 CANCELLED AT 2026-10-25T17:02:41 DUE TO TIME LIMIT ***
+slurmstepd: error: *** JOB 784183 ON romeo-c021 CANCELLED AT 2026-10-25T17:57:11 DUE TO TIME LIMIT ***
 [romeo-c021:00000] *** An error occurred in Socket closed
-[romeo-c021:00000] *** reported by process [1839988737,2]
+[romeo-c021:00000] *** reported by process [2745499649,2]
 [romeo-c021:00000] *** on a NULL communicator
 [romeo-c021:00000] *** Unknown error
 [romeo-c021:00000] *** MPI_ERRORS_ARE_FATAL (processes in this communicator will now abort,
@@ -31,8 +32,8 @@ slurmstepd: error: *** JOB 784154 ON romeo-c021 CANCELLED AT 2026-10-25T17:02:41
 --------------------------------------------------------------------------
 PRTE has lost communication with a remote daemon.
 
-  HNP daemon   : [prterun-romeo-c021-2851160@0,0] on node romeo-c021
-  Remote daemon: [prterun-romeo-c021-2851160@0,1] on node romeo-c022
+  HNP daemon   : [prterun-romeo-c021-2864949@0,0] on node romeo-c021
+  Remote daemon: [prterun-romeo-c021-2864949@0,1] on node romeo-c022
 
 This is usually due to either a failure of the TCP network
 connection to the node, or possibly an internal failure of

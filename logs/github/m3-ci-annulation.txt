@@ -1,12 +1,12 @@
-Run https://github.com/orrnithogalum/mpiflow/actions/runs/40210471986
-(workflow_dispatch annulé, job Slurm en attente, commit daf94f0) : cancelled
+Run https://github.com/orrnithogalum/mpiflow/actions/runs/40214844255
+(workflow_dispatch annulé, job Slurm en attente, commit 5b5ed3e) : cancelled
   job              résultat     durée
   lint             skipped      -
-  build            success      53 s
-  test             success      64 s
-  registry_login   success      6 s
+  build            success      47 s
+  test             success      43 s
+  registry_login   success      5 s
   package          skipped      -
-  test_slurm       cancelled    78 s
+  test_slurm       cancelled    79 s
 
 étapes de test_slurm :
   étape « Set up job » : success
@@ -22,18 +22,18 @@ Run https://github.com/orrnithogalum/mpiflow/actions/runs/40210471986
 --- job test_slurm ---
 > Run actions/checkout@v7
 > Run bash romeo/ci_ssh.sh sync
-dépôt copié dans ~/mpiflow-ci/40210471986-1 sur romeo
+dépôt copié dans ~/mpiflow-ci/40214844255-1 sur romeo
 > Run read -ra opts <<< "$SBATCH_OPTS"
 environnement : ROMEO (romeo_load_x64cpu_env, Spack partagé)
-mpicc : /gpfs/home/sgmrowe/mpiflow-ci/40210471986-1/spack/romeo/.spack-env/view/bin/mpicc (gcc (GCC) 11.5.0 20240719 (Red Hat 11.5.0-5))
-Job Slurm 784165 soumis (2026-10-25T17:13:34+01:00)
-[17:13:34] +    0s  job 784165  PENDING    raison=BeginTime
-   début estimé par Slurm : 2026-10-25T17:23:34
-[17:13:50] +   16s  job 784165  PENDING    raison=BeginTime
-[17:14:05] +   31s  job 784165  PENDING    raison=BeginTime
-[17:14:20] +   46s  job 784165  PENDING    raison=BeginTime
+mpicc : /gpfs/home/sgmrowe/mpiflow-ci/40214844255-1/spack/romeo/.spack-env/view/bin/mpicc (gcc (GCC) 11.5.0 20240719 (Red Hat 11.5.0-5))
+Job Slurm 784192 soumis (2026-10-25T18:08:14+01:00)
+[18:08:14] +    0s  job 784192  PENDING    raison=BeginTime
+   début estimé par Slurm : 2026-10-25T18:18:14
+[18:08:29] +   15s  job 784192  PENDING    raison=BeginTime
+[18:08:44] +   30s  job 784192  PENDING    raison=BeginTime
+[18:09:00] +   46s  job 784192  PENDING    raison=BeginTime
 Error: The operation was canceled.
 > Run bash romeo/ci_ssh.sh cancel
-job 784165 encore présent : scancel
+job 784192 encore présent : scancel
 > Run bash romeo/ci_ssh.sh fetch
 > Run actions/upload-artifact@v7

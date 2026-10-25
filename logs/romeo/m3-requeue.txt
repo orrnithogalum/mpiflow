@@ -1,29 +1,27 @@
 $ MPIFLOW_HANG_RANK=1 POLL_INTERVAL=10 ./slurm/submit_and_poll.sh slurm/job_ci.sh --time=00:03:00 --requeue     # pendant le job : scontrol requeue <job>
-Job Slurm 784159 soumis (2026-10-25T17:04:35+01:00)
-[17:04:35] +    0s  job 784159  PENDING    raison=None
-[17:04:45] +   10s  job 784159  RUNNING    raison=None
-[17:04:55] +   20s  job 784159  REQUEUED   raison=None
+Job Slurm 784188 soumis (2026-10-25T17:59:03+01:00)
+[17:59:03] +    0s  job 784188  PENDING    raison=None
+[17:59:13] +   10s  job 784188  RUNNING    raison=None
+[17:59:23] +   20s  job 784188  REQUEUED   raison=None
 job remis en file par Slurm (Restarts=1) : on ne l'attend pas
 ---- sacct ----
 JobID               JobName      State ExitCode    Elapsed   NNodes         NodeList 
 ------------ -------------- ---------- -------- ---------- -------- ---------------- 
-784159           ci-mpiflow   REQUEUED      0:0   00:00:20        2 romeo-c[021-022] 
-784159.batch          batch  CANCELLED     0:15   00:00:21        1       romeo-c021 
-784159.exte+         extern  COMPLETED      0:0   00:00:20        2 romeo-c[021-022] 
-784159.0              prted  CANCELLED     0:15   00:00:23        1       romeo-c022 
-784159           ci-mpiflow    PENDING      0:0   00:00:00        2    None assigned 
+784188           ci-mpiflow   REQUEUED      0:0   00:00:20        2 romeo-c[021-022] 
+784188.batch          batch  CANCELLED     0:15   00:00:21        1       romeo-c021 
+784188.exte+         extern  COMPLETED      0:0   00:00:20        2 romeo-c[021-022] 
+784188.0              prted  CANCELLED     0:15   00:00:23        1       romeo-c022 
 ---- sortie du job ----
-== Job 784159 : 2 nœud(s) [romeo-c[021-022]], 8 tâches
+== Job 784188 : 2 nœud(s) [romeo-c[021-022]], 8 tâches
 == Soumis depuis /gpfs/home/sgmrowe/mpiflow (commit hors CI)
 == Environnement : ROMEO (romeo_load_x64cpu_env, Spack partagé)
 == mpicc : /gpfs/home/sgmrowe/mpiflow/spack/romeo/.spack-env/view/bin/mpicc
 [rang 1] blocage simulé (MPIFLOW_HANG_RANK)
-slurmstepd: error: *** JOB 784159 ON romeo-c021 CANCELLED AT 2026-10-25T17:04:55 DUE TO JOB REQUEUE ***
+slurmstepd: error: *** JOB 784188 ON romeo-c021 CANCELLED AT 2026-10-25T17:59:23 DUE TO JOB REQUEUE ***
 Verdict : échec d'INFRASTRUCTURE (REQUEUED) -> relance possible
 [code retour : 75]
-$ sacct -X -D -j 784159 -o JobID,State,Start,End      # juste après le verdict
+$ sacct -X -D -j 784188 -o JobID,State,Start,End      # juste après le verdict
 JobID             State               Start                 End 
 ------------ ---------- ------------------- ------------------- 
-784159         REQUEUED 2026-10-25T17:04:35 2026-10-25T17:04:55 
-784159          PENDING             Unknown             Unknown 
-$ scancel 784159      # étape de nettoyage du job CI
+784188         REQUEUED 2026-10-25T17:59:03 2026-10-25T17:59:23 
+$ scancel 784188      # étape de nettoyage du job CI
