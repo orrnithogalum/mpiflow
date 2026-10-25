@@ -269,7 +269,8 @@ def _demo():
     git("checkout", "-q", "-B", br)
     wf = open(".github/workflows/ci.yml").read()
     open(".github/workflows/ci.yml", "w").write(re.sub(r"\n    needs: build +#[^\n]*", "", wf, count=1))
-    git("commit", "-q", "-am", "demo: job test sans needs")
+    # seulement le fichier modifié : les preuves de logs/github/ (suivies) restent hors des branches
+    git("commit", "-q", "-m", "demo: job test sans needs", ".github/workflows/ci.yml")
     push(br, force=True)
     t0 = dispatch(br, hpc="false")
     r = wait_run(since=t0, event="workflow_dispatch", branch=br)
@@ -290,7 +291,7 @@ def _demo():
     src = open("tests/test_mpi.c").read()
     open("tests/test_mpi.c", "w").write(src.replace(
         "int errors = 0;", "int errors = 0;\n    int tab[4];\n    tab[4] = rank; /* erreur volontaire */", 1))
-    git("commit", "-q", "-am", "demo: écriture hors du tableau (erreur volontaire)")
+    git("commit", "-q", "-m", "demo: écriture hors du tableau (erreur volontaire)", "tests/test_mpi.c")
     sha1 = git("rev-parse", "HEAD")
     push(br, force=True)
     pr = run(["gh", "pr", "view", br, "--repo", R, "--json", "number,url,state"], check=False)
@@ -318,7 +319,7 @@ def _demo():
     say("Mission 1 : deux jobs indépendants en échec (lint et build)")
     src = open("tests/test_mpi.c").read()
     open("tests/test_mpi.c", "w").write(src.replace("MPI_Finalize();", "MPI_Finalize()", 1))
-    git("commit", "-q", "-am", "demo: point-virgule manquant (erreur de compilation)")
+    git("commit", "-q", "-m", "demo: point-virgule manquant (erreur de compilation)", "tests/test_mpi.c")
     sha2 = git("rev-parse", "HEAD")
     push(br, force=True)
     r = wait_run(commit=sha2)

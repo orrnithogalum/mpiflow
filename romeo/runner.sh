@@ -12,7 +12,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 DIR=${RUNNER_DIR:-$HOME/.mpiflow-runner}
 R=$(gh repo view --json nameWithOwner -q .nameWithOwner)
-NAME="$(hostname -s)-romeo"
+NAME="$(uname -n | cut -d. -f1)-romeo"      # pas hostname : absent de certaines distributions (Arch)
 
 case "${1:-}" in
 start)
