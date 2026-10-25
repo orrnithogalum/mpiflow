@@ -1,11 +1,11 @@
-Pull request https://github.com/orrnithogalum/mpiflow/pull/5
-runs créés pour le commit 8c743b2 : 1 (pull_request)
-Run https://github.com/orrnithogalum/mpiflow/actions/runs/40208862294
-(pull_request, commit 8c743b2) : failure
+Pull request https://github.com/orrnithogalum/mpiflow/pull/1
+runs créés pour le commit 0113a35 : 1 (pull_request)
+Run https://github.com/orrnithogalum/mpiflow/actions/runs/40212629235
+(pull_request, commit 0113a35) : failure
   job              résultat     durée
-  lint             failure      17 s
-  build            success      39 s
-  test             success      56 s
+  lint             failure      40 s
+  build            success      53 s
+  test             success      48 s
   registry_login   success      4 s
   package          skipped      -
   test_slurm       skipped      -
@@ -27,5 +27,5 @@ Error: Process completed with exit code 1.
 
 --- job registry_login (pull request) ---
 > Run echo "ref=${GITHUB_REF} événement=${GITHUB_EVENT_NAME}"
-ref=refs/pull/5/merge événement=pull_request
+ref=refs/pull/1/merge événement=pull_request
 FAKE_REGISTRY_TOKEN vide : secret non transmis à ce job
