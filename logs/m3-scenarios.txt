@@ -1,0 +1,5 @@
+1|un rang bloqué
+2|un rang plante
+9|file occupée
+13|attente, timeout CI
+14|panne de nœud

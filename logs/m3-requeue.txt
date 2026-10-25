@@ -1,0 +1,29 @@
+$ MPIFLOW_HANG_RANK=1 POLL_INTERVAL=20 ./slurm/submit_and_poll.sh slurm/job_ci.sh --time=00:05:00     # slurmd de hpc-compute tué à +12 s
+Job Slurm 18 soumis (2026-10-25T10:37:58+00:00)
+[10:37:58] +    0s  job 18  PENDING    raison=None
+[10:38:18] +   20s  job 18  RUNNING    raison=None
+[10:38:38] +   40s  job 18  RUNNING    raison=None
+[10:38:58] +   60s  job 18  RUNNING    raison=None
+[10:39:18] +   80s  job 18  RUNNING    raison=None
+[10:39:38] +  100s  job 18  PENDING    raison=BeginTime
+job remis en file par Slurm après une panne (Restarts=1)
+---- sacct ----
+JobID               JobName      State ExitCode    Elapsed   NNodes         NodeList 
+------------ -------------- ---------- -------- ---------- -------- ---------------- 
+18               ci-mpiflow  NODE_FAIL      0:0   00:01:36        2 hpc-compute,hpc+ 
+18.batch              batch     FAILED      1:0   00:01:37        1      hpc-compute 
+18.0               test_mpi  CANCELLED     0:15   00:01:36        2 hpc-compute,hpc+ 
+18               ci-mpiflow    PENDING      0:0   00:00:00        2    None assigned 
+---- sortie du job ----
+== Job 18 : 2 nœud(s) [hpc-compute,hpc-login], 4 tâches
+== Soumis depuis /shared/ci/mpiflow (commit hors CI)
+== Environnement : système (PATH par défaut)
+== mpicc : /usr/bin/mpicc
+[rang 1] blocage simulé (MPIFLOW_HANG_RANK)
+srun: error: Node failure on hpc-compute
+srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+srun: error: hpc-login: tasks 2-3: Terminated
+srun: Terminating StepId=18.0
+FAILED: srun a renvoyé 1
+Verdict : échec d'INFRASTRUCTURE (REQUEUED) -> relance possible
+[code retour : 75]

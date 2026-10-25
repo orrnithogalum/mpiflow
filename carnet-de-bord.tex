@@ -2,21 +2,20 @@
 %  Compte-rendu de TP -- Cours 6 « DevOps pour le HPC » (M2 CHPS, CHPS0902)
 %  Carnet de bord de la séance en pédagogie inversée (missions 1 à 5)
 %
-%  Compilation : pdflatex carnet-de-bord.tex (deux passes) ou latexmk
-%  Les extraits de code et de logs sont lus directement dans le dépôt et dans
-%  logs/ : rejouer une commande met le document à jour.
+%  Compilation : latexmk -g (pdfLaTeX). Les extraits de code et de logs sont lus
+%  dans le dépôt et dans logs/ ; les preuves GitHub (logs/github/) et cluster
+%  (logs/cluster/) remplacent automatiquement les preuves locales dès qu'elles existent.
 % =============================================================================
 \documentclass[11pt,a4paper]{article}
 
 % ------------------------------------------------------------- à renseigner
 \newcommand{\etudiants}{Sylvain ROWE}
 \newcommand{\depot}{\afaire{URL du dépôt}}
-\newcommand{\gcpinfo}{\afaire{type de VM, partition}}
+\newcommand{\clusterinfo}{\afaire{type et zone des VM}}
 \newcommand{\spackinstalltime}{\afaire{durée}}
-\newif\ifbrouillon \brouillontrue  % \brouillonfalse : masque la page « Reste à faire »
-% Les scripts scripts/gitlab_evidence.py et scripts/gcp_evidence.sh écrivent leurs
-% preuves dans logs/gitlab/ et logs/gcp/ : le document les inclut dès qu'elles existent.
-\newif\ifgitlab \newif\ifgcp
+\newcommand{\mpilauncher}{srun}
+\newcommand{\ghsecret}{environnement}
+\newif\ifgithub \newif\ifghdemo \newif\ifghhpc \newif\ifcluster \newif\ifbrouillon
 % -----------------------------------------------------------------------------
 
 \usepackage[T1]{fontenc}
@@ -27,41 +26,40 @@
 \usepackage[french]{babel}
 \frenchsetup{SmallCapsFigTabCaptions=false, StandardItemLabels=true}
 \usepackage[babel]{csquotes}
-\addto\captionsfrench{\renewcommand{\tablename}{Tableau}}
-
 \usepackage[a4paper,margin=2.5cm]{geometry}
 \usepackage{microtype}
-\usepackage{amsmath,amssymb}
-\usepackage{graphicx}
-\usepackage{booktabs,tabularx,array}
+\usepackage{amssymb}
 \usepackage[dvipsnames]{xcolor}
 \usepackage{enumitem}
 \usepackage{listings}
 \usepackage{caption}
 \usepackage{tikz}
-\usetikzlibrary{positioning,arrows.meta,calc,fit,backgrounds,decorations.pathmorphing}
+\usetikzlibrary{arrows.meta,calc,positioning}
 \usepackage[obeyspaces,spaces]{url}
 \usepackage[hidelinks]{hyperref}
 
 \captionsetup{font=small, labelfont=bf, labelsep=period, justification=justified,
-  singlelinecheck=true, skip=6pt}
-\captionsetup[table]{position=top}
+  singlelinecheck=true, skip=5pt}
+\captionsetup[lstlisting]{justification=centering}
 \setlist{itemsep=0.1em, topsep=0.3em}
 \setlength{\emergencystretch}{2.5em}
 
+% Mise en page : aucun paragraphe coupé entre deux pages, figures et listings
+% insécables, bas de page libre plutôt qu'étiré.
+\interlinepenalty=10000
+\raggedbottom
+
 % ------------------------------------------------------------- code
 \DeclareUrlCommand\code{\urlstyle{tt}}
-\def\UrlBreaks{\do\/\do\-\do\_\do\.\do\=\do\,\do\:\do\;}
+\def\UrlBreaks{\do\/\do\-\do\_\do\.\do\=\do\,\do\:\do\;\do\+\do\^\do\%}
 \newcommand{\fic}[1]{\code{#1}}
-\newcolumntype{L}{>{\raggedright\arraybackslash}X}
-
 \definecolor{gristrait}{gray}{0.6}
 \definecolor{gristexte}{gray}{0.45}
 \lstset{
   basicstyle=\ttfamily\scriptsize, columns=fullflexible, keepspaces=true,
   breaklines=true, breakatwhitespace=false, showstringspaces=false, upquote=true,
   frame=lines, rulecolor=\color{gristrait}, framesep=3pt, xleftmargin=0pt,
-  aboveskip=8pt, belowskip=8pt, captionpos=b, abovecaptionskip=6pt,
+  aboveskip=4pt, belowskip=2pt, captionpos=b, abovecaptionskip=5pt,
   tabsize=4, extendedchars=true,
   postbreak=\mbox{\textcolor{gristexte}{$\hookrightarrow$}\space},
   commentstyle=\color{gristexte}, keywordstyle=\bfseries, stringstyle={},
@@ -71,23 +69,27 @@
            {«}{{\guillemotleft}}1 {»}{{\guillemotright}}1 {×}{{$\times$}}1
            {→}{{$\to$}}1 {’}{{'}}1 {…}{{...}}3
 }
-\lstdefinestyle{numerote}{numbers=left, numberstyle=\tiny\color{gristexte}, numbersep=6pt}
 \lstdefinelanguage{yaml}{morecomment=[l]{\#}, sensitive=true,
-  morekeywords={workflow,stages,variables,default,image,interruptible,before_script,
-    script,after_script,rules,if,when,needs,job,artifacts,paths,expire_in,reports,junit,
-    stage,extends,tags,timeout,retry,max,exit_codes,allow_failure,spack,specs,view,
-    concretizer,unify,packages,all,target,externals,spec,prefix,buildable}}
+  morekeywords={on,push,branches,tags,pull_request,jobs,needs,runs-on,container,steps,uses,
+    run,with,name,path,if,env,environment,timeout-minutes,spack,specs,view,concretizer,
+    unify,packages,all,target,externals,spec,prefix,buildable,repos,builtin,git,commit}}
 \renewcommand{\lstlistingname}{Listing}
 
-% ------------------------------------------------------------- éléments à compléter
-\newcommand{\afaire}[1]{\textcolor{red!70!black}{[À compléter : #1]}}
-% emplacement d'une capture : remplacer par \includegraphics[width=\linewidth]{...}
-\newcommand{\capture}[2]{%
-  \begin{tikzpicture}
-    \draw[red!70!black, dashed, rounded corners=2pt] (0,0) rectangle (\linewidth,#1);
-    \node[text width=0.85\linewidth, align=center, red!70!black, font=\small]
-      at (0.5\linewidth,0.5*#1) {Capture à insérer\\[2pt] #2};
-  \end{tikzpicture}}
+% Un listing = un bloc insécable : \preuve[options listings, label=...]{fichier}{légende}
+\newcommand{\preuve}[3][]{\par\medskip\noindent\begin{minipage}{\linewidth}%
+  \lstinputlisting[caption={#3 (\texttt{\detokenize{#2}})},#1]{#2}\end{minipage}\par\medskip}
+% Preuve GitHub ou cluster si elle existe, sinon preuve locale :
+% \preuveou[options]{fichier}{légende}[options locales]{fichier local}{légende locale}
+\NewDocumentCommand{\preuveou}{O{} m m O{} m m}{\IfFileExists{#2}{\preuve[#1]{#2}{#3}}{\preuve[#4]{#5}{#6}}}
+% Une figure et le paragraphe qui la commente forment un bloc insécable.
+\newenvironment{figtexte}{\par\medskip\noindent\begin{minipage}{\linewidth}\centering}%
+  {\end{minipage}\par\medskip}
+\makeatletter
+\newcommand{\commentaire}{\par\vspace{8pt}\leftskip=0pt\rightskip=0pt
+  \parfillskip=0pt plus 1fil\parindent=1.5em\let\\\@normalcr}
+\makeatother
+
+\newcommand{\afaire}[1]{\textcolor{red!70!black}{[à compléter : #1]}}
 
 % ------------------------------------------------------------- figures (palette Okabe-Ito)
 \definecolor{oiBleu}{RGB}{0,114,178}
@@ -97,17 +99,20 @@
 \definecolor{oiVermillon}{RGB}{213,94,0}
 \definecolor{oiPourpre}{RGB}{204,121,167}
 \tikzset{
-  job/.style={draw=#1, fill=#1!18, rounded corners=2pt, minimum width=2.75cm,
-    minimum height=0.62cm, font=\ttfamily\footnotesize, inner sep=2pt},
-  quand/.style={font=\sffamily\scriptsize, text=black!70},
-  fleche/.style={-{Stealth[length=2.2mm]}, thick},
-  boite/.style={draw=black!55, rounded corners=3pt, inner sep=6pt},
+  job/.style={draw=#1, fill=#1!16, rounded corners=2pt, minimum width=1.85cm,
+    minimum height=0.55cm, font=\ttfamily\scriptsize, inner sep=2pt},
+  quand/.style={font=\sffamily\tiny, text=black!65},
+  fleche/.style={-{Stealth[length=2mm]}, thick},
+  vm/.style={draw=black!55, rounded corners=3pt, inner sep=5pt},
+  rang/.style={circle, fill=oiBleu, text=white, font=\sffamily\scriptsize\bfseries,
+    inner sep=0pt, minimum size=0.5cm},
 }
-\newcommand{\jobtxt}[2]{{\ttfamily\scriptsize #1}\\[-1pt]{\sffamily\tiny\color{black!70}#2}}
 
-\IfFileExists{logs/gitlab/meta.tex}{\gitlabtrue\input{logs/gitlab/meta.tex}}{}
-\IfFileExists{logs/gcp/meta.tex}{\gcptrue\input{logs/gcp/meta.tex}}{}
-\ifgitlab\ifgcp\brouillonfalse\fi\fi
+\IfFileExists{logs/github/meta.tex}{\githubtrue\input{logs/github/meta.tex}}{}
+\IfFileExists{logs/github/m2-pr.txt}{\ghdemotrue}{}
+\IfFileExists{logs/github/m3-ci-polling.txt}{\ghhpctrue}{}
+\IfFileExists{logs/cluster/meta.tex}{\clustertrue\input{logs/cluster/meta.tex}}{}
+\brouillontrue \ifghdemo\ifghhpc\ifcluster\brouillonfalse\fi\fi\fi
 
 % =============================================================================
 \begin{document}
@@ -145,18 +150,17 @@ Date : & \today\\
 \ifbrouillon
 \thispagestyle{empty}
 \section*{\textcolor{red!70!black}{Reste à faire avant le rendu}}
-{\color{red!70!black}\small Cette page disparaît d'elle-même quand les deux scripts ci-dessous
-ont produit leurs preuves ; les mentions \afaire{...} sont alors remplies.}
+{\color{red!70!black}\small Cette page disparaît dès que les preuves GitHub et cluster existent.
+En attendant, les listings et les figures 2 et 4 montrent les exécutions locales ou le
+comportement attendu. Les commandes se lancent à la racine du dépôt (voir \fic{README.md}).}
 \begin{enumerate}
-\item Sur votre machine, depuis le dépôt (branche \code{main}) :
-\code{GITLAB_TOKEN=glpat-... python3 scripts/gitlab_evidence.py}
-\ifgitlab\enskip\textcolor{OliveGreen}{fait}\fi
-\item Sur le nœud de connexion du cluster GCP, depuis le dépôt cloné dans \fic{/home} :
-\code{bash scripts/gcp_evidence.sh} \ifgcp\enskip\textcolor{OliveGreen}{fait}\fi
-\item Recompiler (\code{latexmk -g} et \code{python3 scripts/tex2md.py}, faits par les scripts
-si LaTeX et pandoc sont installés), commiter \fic{logs/}, \fic{spack/}, le PDF et le Markdown, puis
-\code{git tag -f seance-inversee && git push -f origin seance-inversee}.
-\item \code{terraform destroy} et vérification de la console GCP.
+\item \code{python3 scripts/github_evidence.py init}, puis \code{demo}
+\ifghdemo\enskip\textcolor{OliveGreen}{fait}\fi
+\item \code{bash cluster/gcp.sh create}, \code{setup}, puis \code{evidence}
+\ifcluster\enskip\textcolor{OliveGreen}{fait}\fi
+\item \code{python3 scripts/github_evidence.py hpc}, puis \code{bash cluster/gcp.sh destroy}
+\ifghhpc\enskip\textcolor{OliveGreen}{fait}\fi
+\item \code{bash scripts/finalise.sh} : PDF, Markdown, commit, tag \code{seance-inversee}, push
 \end{enumerate}
 \clearpage
 \setcounter{page}{1}
@@ -167,463 +171,381 @@ si LaTeX et pandoc sont installés), commiter \fic{logs/}, \fic{spack/}, le PDF 
 % =============================================================================
 
 Un code de calcul ne vit pas seulement sur le poste du développeur : il est compilé, testé,
-empaqueté puis exécuté sur un cluster partagé, où tout passe par l'ordonnanceur Slurm et où
-l'environnement logiciel doit être identique sur chaque nœud. Le DevOps appliqué au HPC
-automatise cette chaîne, mais ses outils ne se transposent pas tels quels depuis le cloud :
-\enquote{CI $\neq$ exécution cluster}.
+empaqueté, puis exécuté sur un cluster partagé où tout passe par l'ordonnanceur Slurm et où
+l'environnement logiciel doit être identique sur chaque nœud. Le DevOps automatise cette
+chaîne, mais ses outils ne se transposent pas tels quels du cloud au HPC : selon la formule du
+cours, \enquote{CI $\neq$ exécution cluster}.
 
 Cette séance en pédagogie inversée consistait à le vérifier par l'expérience, en quatre
-missions : faire exécuter par une autre machine la compilation et le test d'un code MPI
-(mission~1), conditionner les jobs à des événements et protéger les secrets (mission~2), faire
-franchir au pipeline la frontière entre le runner CI et Slurm (mission~3), et versionner
-l'environnement logiciel avec Spack (mission~4). Ce carnet de bord constitue la mission~5 : une
-section par mission, avec les réponses aux questions de cadrage, les preuves d'exécution, les
-erreurs rencontrées et un bilan, puis un auto-diagnostic.
-
-Pour chaque question, nous avons cherché une réponse fondée sur une expérience plutôt que sur
-les diapositives : plusieurs réponses en sont sorties nuancées, voire contraires à notre
-intuition de départ.
+missions : faire compiler et tester un code MPI par une autre machine (mission~1), conditionner
+les jobs à des événements et protéger un secret (mission~2), faire franchir au pipeline la
+frontière entre le runner CI et Slurm (mission~3), et versionner l'environnement logiciel avec
+Spack (mission~4). Ce carnet de bord constitue la mission~5. Pour chaque mission, il présente la
+réalisation et ses preuves d'exécution, répond aux questions de cadrage, décrit les erreurs
+rencontrées et se termine par un bilan en trois lignes ; un auto-diagnostic conclut.
 
 % =============================================================================
 \section{Matériels et méthodes}
 % =============================================================================
 
-\subsection{Environnement}
+Nous avons choisi GitHub Actions, que le sujet autorise. Les jobs des missions 1 et 2 tournent
+sur les runners hébergés par GitHub (Ubuntu 24.04), dans le conteneur \code{gcc:13-bookworm}
+demandé. Le fichier \fic{.gitlab-ci.yml} équivalent est fourni dans le dépôt et a été validé
+localement avec l'émulateur \code{gitlab-ci-local} ; les questions de cadrage, écrites pour
+GitLab, sont traitées pour les deux plateformes.
 
-Pour pouvoir casser librement les choses (faire échouer un test, saturer une file, simuler la
-panne d'un nœud), nous avons d'abord reproduit chaque mission sur un poste Linux, avec un
-petit cluster Slurm complet et un émulateur de GitLab CI (tableau~\ref{tab:env}). Le
-mini-cluster comprend le contrôleur, la base de comptabilité (sans laquelle \code{sacct} ne
-fonctionne pas) et deux nœuds de 2 CPU, comme deux VM \code{e2-standard-2}. Les mêmes fichiers
-sont ensuite exécutés sur GitLab.com et sur le cluster GCP déployé par Terraform au Cours~5.
+Faute du cluster Terraform du Cours~5, la mission~3 utilise la solution de repli du sujet : deux
+petites VM GCP que nous configurons nous-mêmes, \clusterinfo. Le script \fic{cluster/gcp.sh}
+crée les VM et une règle de pare-feu limitée au trafic entre elles, et
+\fic{cluster/node_setup.sh} les configure : sur \code{hpc-login}, le contrôleur Slurm, la
+comptabilité (\code{slurmdbd} et MariaDB, sans lesquels \code{sacct} ne répond pas), un
+\code{slurmd} et un serveur NFS qui partage \fic{/shared} ; sur \code{hpc-compute}, un
+\code{slurmd} et le client NFS. Un runner GitHub auto-hébergé, étiqueté \code{hpc-login}, tourne
+sur le nœud de connexion sous un utilisateur dédié. Les VM sont supprimées à la fin
+(\code{cluster/gcp.sh destroy}).
 
-\begin{table}[ht]
-\centering\small
-\caption{Environnements d'exécution.}\label{tab:env}
-\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{3.2cm} L >{\raggedright\arraybackslash}p{2.6cm}@{}}
-\toprule
-Composant & Version et configuration & Missions\\ \midrule
-Poste de reproduction & Ubuntu 24.04, 2 vCPU, 8 Go ; GCC 13.3, CMake 3.28, Open MPI 4.1.6 & toutes\\
-Analyse statique & cppcheck 2.13, shellcheck 0.9, actionlint 1.7.12 & 2, 3\\
-Émulateur GitLab CI & \code{gitlab-ci-local} 4.76.1 : validation par le schéma officiel, évaluation des \code{rules}, exécution des jobs & 1, 2\\
-Mini-cluster Slurm & Slurm 23.11.4 : \code{slurmctld}, \code{slurmdbd} et MariaDB, deux \code{slurmd} (\code{node1}, \code{node2}, 2 CPU), partition \code{debug}, utilisateur sans privilèges & 3\\
-Spack & 1.2.2 (tag de version), dépôt de paquets \code{builtin}, solveur clingo 5.8 & 4\\
-GitLab.com & runners partagés, projet \depot & 1 à 3\\
-Google Cloud & cluster Slurm du Cours 5 : \gcpinfo & 3, 4\\
-\bottomrule
-\end{tabularx}
-\end{table}
-
-\subsection{Le dépôt \texttt{mpiflow}}
-
-Le dépôt de travail (tableau~\ref{tab:depot}) contient un code de test MPI, son build CMake et
-tous les fichiers produits pendant les missions. Le pipeline final est résumé par la
-figure~\ref{fig:pipeline} ; le fichier complet est donné en annexe~A.
-
-\begin{table}[ht]
-\centering\small
-\caption{Contenu du dépôt.}\label{tab:depot}
-\begin{tabularx}{\linewidth}{@{}>{\ttfamily\footnotesize\raggedright\arraybackslash}p{5.5cm} L c@{}}
-\toprule
-\normalfont Fichier & Rôle & Mission\\ \midrule
-tests/test\_mpi.c & test MPI : Bcast, Allreduce, taille du communicateur & 1\\
-CMakeLists.txt, tests/CMakeLists.txt & build CMake, tests CTest à 1 et 4 rangs & 1\\
-.gitlab-ci.yml & pipeline : build, test, lint, package, secrets, Slurm & 1 à 3\\
-.github/workflows/ci.yml & équivalent GitHub Actions & 1, 2\\
-scripts/fake\_docker\_login.sh & simulation de \texttt{docker login -{}-password-stdin} & 2\\
-slurm/job\_ci.sh & job Slurm : 2 nœuds, MPI, \texttt{SUCCESS} & 3\\
-slurm/submit\_and\_poll.sh & soumission, suivi par \texttt{sacct}, verdict & 3\\
-slurm/ci\_remote.sh & variante SSH : build et soumission à distance & 3\\
-spack/spack.yaml, spack/spack.lock & environnement Spack versionné & 4\\
-logs/ & sorties brutes citées dans ce document & --\\
-\bottomrule
-\end{tabularx}
-\end{table}
-
-\begin{figure}[ht]
-\centering
-\begin{tikzpicture}[x=1cm,y=1cm,
-    jb/.style={draw=#1, fill=#1!18, rounded corners=2pt, minimum width=2.6cm,
-      minimum height=0.95cm, align=center, inner sep=2pt}]
-  \foreach \x/\s in {0/lint,3.3/build,6.6/test,9.9/package,13.2/test\_hpc}
-    \node[font=\sffamily\small\bfseries, text=black!65] at (\x,1.6) {\s};
-  \draw[black!25] (-1.4,1.3) -- (14.6,1.3);
-  \node[jb=oiPourpre] (lint) at (0,0) {\jobtxt{lint}{MR uniquement}};
-  \node[jb=oiCiel] (build) at (3.3,0) {\jobtxt{build}{tous les pipelines}};
-  \node[jb=oiCiel] (test) at (6.6,0) {\jobtxt{test}{tous les pipelines}};
-  \node[jb=oiOrange] (pkg) at (9.9,0) {\jobtxt{package}{tags vX.Y.Z}};
-  \node[jb=oiCiel] (reg) at (9.9,-1.5) {\jobtxt{registry\_login}{tous ; secret protégé}};
-  \node[jb=oiVert] (hpc) at (13.2,0) {\jobtxt{test\_slurm}{nuit, ou manuel sur main}};
-  \node[jb=oiVert] (wait) at (13.2,-1.5) {\jobtxt{test\_slurm\_wait}{nuit, ou manuel sur main}};
-  \node[jb=oiVert, dashed] (ssh) at (13.2,-3.0) {\jobtxt{test\_slurm\_ssh}{si clé SSH déclarée}};
-  % dépendances needs
-  \draw[fleche] (build) -- (test);
-  \draw[fleche] (build.north) to[out=25,in=155]
-    node[below, quand, pos=0.5] {artefact \texttt{build/}} (pkg.north);
-  \draw[fleche, dashed] (test) -- (pkg);
-  \draw[thick, dashed] (test.south) -- (6.6,-0.78) -- (11.6,-0.78);
-  \draw[fleche, dashed] (11.6,-0.78) |- (hpc.west);
-  \draw[fleche, dashed] (11.6,-0.78) |- (wait.west);
-  % légende
-  \begin{scope}[shift={(-1.3,-4.1)}, font=\sffamily\scriptsize]
-    \draw[fleche] (0,0) -- (0.7,0) node[right] {\texttt{needs} avec artefacts};
-    \draw[fleche,dashed] (3.7,0) -- (4.4,0) node[right] {\texttt{needs} sans artefact};
-    \node[jb=oiCiel, minimum width=0.5cm, minimum height=0.3cm] at (7.7,0) {};
-    \node[right] at (8.0,0) {CI rapide};
-    \node[jb=oiOrange, minimum width=0.5cm, minimum height=0.3cm] at (9.7,0) {};
-    \node[right] at (10.0,0) {version};
-    \node[jb=oiVert, minimum width=0.5cm, minimum height=0.3cm] at (11.6,0) {};
-    \node[right] at (11.9,0) {cluster (Slurm)};
-    \node[jb=oiPourpre, minimum width=0.5cm, minimum height=0.3cm] at (14.2,0) {};
-    \node[right] at (14.5,0) {MR};
-  \end{scope}
+\begin{figtexte}
+\begin{tikzpicture}[font=\sffamily\scriptsize]
+  % --- GitHub
+  \draw[black!40, rounded corners=4pt, fill=black!2] (0,0.5) rectangle (7.35,-4.35);
+  \node[anchor=north west, font=\sffamily\footnotesize\bfseries] at (0.1,0.45) {GitHub Actions};
+  \node[anchor=north west, text=black!60] at (0.1,0.05) {runners hébergés, conteneur \texttt{gcc:13-bookworm}};
+  \node[job=oiPourpre] (lint) at (1.25,-1.0) {lint};
+  \node[quand, below=1pt of lint] {pull requests};
+  \node[job=oiCiel] (reg) at (6.0,-1.0) {registry\_login};
+  \node[quand, below=1pt of reg] {tous les runs};
+  \node[job=oiCiel] (build) at (1.25,-2.4) {build};
+  \node[quand, below=1pt of build] {tous les runs};
+  \node[job=oiCiel] (test) at (3.85,-2.4) {test};
+  \node[quand, below=1pt of test] {tous les runs};
+  \node[job=oiOrange] (pkg) at (6.0,-3.55) {package};
+  \node[quand, below=1pt of pkg] {tags vX.Y.Z, environnement release};
+  \draw[fleche] (build) -- node[above, quand] {artefact} (test);
+  \draw[fleche] (test.south) |- (pkg.west);
+  \draw[fleche, black!45] ($(build.south)+(-0.8,0)$) |- ($(pkg.west)+(0,-0.12)$);
+  % --- GCP
+  \draw[black!40, rounded corners=4pt, fill=black!2] (8.1,0.5) rectangle (16.0,-4.35);
+  \node[anchor=north west, font=\sffamily\footnotesize\bfseries] at (8.2,0.45) {Google Cloud};
+  \node[anchor=north west, text=black!60] at (8.2,0.05) {deux VM \texttt{e2-standard-2}, Ubuntu 24.04};
+  \draw[vm, fill=oiVert!8] (8.3,-0.5) rectangle (11.75,-3.15);
+  \node[anchor=north west, font=\sffamily\scriptsize\bfseries] at (8.35,-0.55) {hpc-login};
+  \node[anchor=north west, align=left, text=black!75] at (8.35,-0.9)
+    {\texttt{slurmctld}, \texttt{slurmdbd}\\ MariaDB, serveur NFS\\ \texttt{slurmd} : rangs 0 et 1};
+  \node[job=oiVert] (slurmjob) at (10.0,-2.4) {test\_slurm};
+  \node[quand, below=1pt of slurmjob] {runner \texttt{hpc-login}, utilisateur \texttt{ci}};
+  \draw[vm, fill=oiVert!8] (12.75,-0.5) rectangle (15.8,-3.15);
+  \node[anchor=north west, font=\sffamily\scriptsize\bfseries] at (12.8,-0.55) {hpc-compute};
+  \node[anchor=north west, align=left, text=black!75] at (12.8,-0.9)
+    {\texttt{slurmd} : rangs 2 et 3\\ client NFS};
+  \draw[{Stealth[length=2mm]}-{Stealth[length=2mm]}, thick, oiOrange] (11.75,-1.6) --
+    node[above, text=black, align=center, font=\sffamily\tiny] {\texttt{srun}\\MPI} (12.75,-1.6);
+  \draw[fill=black!8, draw=black!45, rounded corners=2pt] (8.3,-3.5) rectangle (15.8,-4.1);
+  \node at (12.05,-3.8) {\texttt{/shared} (NFS) : Spack, dépôt, binaire, sorties \texttt{ci-*.out}};
+  \draw[black!45, thick] (10.0,-3.15) -- (10.0,-3.5);
+  \draw[black!45, thick] (14.3,-3.15) -- (14.3,-3.5);
+  % --- lien GitHub -> runner
+  \draw[fleche, dashed] (test.east) -- node[above, quand, pos=0.62, align=center] {needs: test\\ lancement manuel ou nuit}
+    node[below, quand, pos=0.62] {HTTPS sortant} (slurmjob.west);
 \end{tikzpicture}
-\caption{Pipeline final. Chaque colonne est un stage ; les flèches représentent les
-dépendances \texttt{needs}, sous chaque job figure la condition qui le crée. \texttt{lint},
-\texttt{registry\_login} et \texttt{test\_slurm\_ssh} ont \texttt{needs: []} et démarrent dès la
-création du pipeline. Les jobs Slurm attendent \texttt{test} sans récupérer son binaire, compilé
-pour l'image Debian et non pour le cluster.}
-\label{fig:pipeline}
-\end{figure}
+\captionof{figure}{Pipeline et infrastructure. Les jobs des missions 1 et 2 tournent sur les
+runners de GitHub ; \texttt{test\_slurm} (mission 3) est exécuté par le runner auto-hébergé du
+nœud de connexion, qui interroge GitHub en HTTPS sans ouvrir de port entrant. Sous chaque job
+figure la condition qui le crée ; les flèches pleines sont les dépendances \texttt{needs}.}
+\label{fig:infra}
+\commentaire
+La figure~\ref{fig:infra} montre la séparation des rôles : les runners de GitHub compilent et
+testent dans un conteneur, le runner \code{hpc-login} ne fait qu'orchestrer, et le calcul a lieu
+sur les nœuds alloués par Slurm. Le répertoire \fic{/shared} rend visibles depuis les deux nœuds
+l'installation de Spack, le binaire compilé par le job et les sorties des jobs Slurm.
+\end{figtexte}
 
-\subsection{Démarche et preuves}
-
-Chaque commande citée a été exécutée à travers un petit enregistreur qui écrit la commande, sa
-sortie complète et son code retour dans un fichier de \fic{logs/}. Les listings de ce document
-incluent ces fichiers tels quels ; les rares coupes sont signalées par \code{[...]}. Les preuves
-produites sur GitLab.com et sur le cluster GCP sont collectées de la même façon, par
-\fic{scripts/gitlab_evidence.py} (API de GitLab) et \fic{scripts/gcp_evidence.sh} (sur le nœud
-de connexion), dans \fic{logs/gitlab/} et \fic{logs/gcp/}.
+Pour pouvoir casser les choses librement (faire échouer un test, saturer la file, tuer un
+nœud), chaque mission a d'abord été reproduite sur un poste Linux, avec un mini-cluster Slurm
+complet, puis rejouée sur GitHub et sur les VM. Les preuves sont collectées par des scripts :
+\fic{scripts/github_evidence.py} pilote GitHub avec la CLI \code{gh}, \fic{cluster/evidence.sh}
+rejoue les scénarios sur le cluster. Chaque commande, sa sortie et son code retour sont écrits
+dans \fic{logs/}, et les listings de ce document incluent ces fichiers tels quels.
 
 % =============================================================================
 \section{Mission 1 : un pipeline minimal}
 % =============================================================================
 
-\subsection{Réalisation}
+\subsection{Réalisation et preuves}
 
-Le test \fic{tests/test_mpi.c} (annexe~C) vérifie trois choses : la valeur 42 diffusée par
-\code{MPI_Bcast} arrive sur tous les rangs, tous les rangs participent (\code{MPI_Allreduce} de la
-somme des rangs) et, si la variable \code{EXPECTED_RANKS} est définie, \code{MPI_COMM_WORLD} a bien
-cette taille. Le rang 0 affiche aussi le nœud de chaque rang, ce qui servira de preuve
-d'exécution multi-nœuds en mission~3. Les vérifications sont explicites et renvoient un code
-d'erreur, au lieu d'utiliser \code{assert} comme le test des diapositives : nous avons constaté
-que cette assertion disparaît en compilation \code{Release} (section~\ref{sec:m1-erreurs}).
+Le test \fic{tests/test_mpi.c} vérifie que la valeur diffusée par \code{MPI_Bcast} arrive sur
+tous les rangs, que tous participent à un \code{MPI_Allreduce} et, si la variable
+\code{EXPECTED_RANKS} est définie, que \code{MPI_COMM_WORLD} a bien cette taille ; le rang~0 affiche
+le nœud de chaque rang. Les vérifications renvoient un code d'erreur au lieu d'utiliser
+\code{assert}, pour une raison donnée en section~\ref{sec:m1-erreurs}. CTest déclare deux tests,
+à 1 et 4 rangs.
 
-CTest déclare deux tests, à 1 et 4 rangs, à partir des variables \code{MPIEXEC_*} de
-\code{FindMPI}. Le pipeline (listing~\ref{lst:m1-yaml}) enchaîne deux jobs dans l'image
-\code{gcc:13-bookworm} : \code{build} publie \fic{build/} comme artefact, \code{test} le récupère via
-\code{needs: [build]}, lance \code{ctest} (le rapport JUnit s'affiche dans GitLab) puis
-\code{mpirun -np 4}.
+Le workflow (listing~\ref{lst:m1-yaml}) enchaîne deux jobs dans l'image \code{gcc:13-bookworm},
+où CMake et Open MPI sont installés par \code{apt}. Le job \code{build} archive \fic{build/} avec
+\code{tar}, car \code{upload-artifact} ne conserve pas le bit d'exécution, et le publie comme
+artefact ; le job \code{test}, relié par \code{needs: build}, le télécharge, lance \code{ctest}
+puis \code{mpirun -np 4 --allow-run-as-root --oversubscribe}.
 
-\lstinputlisting[language=yaml, style=numerote, firstnumber=47, linerange={47-70},
-  caption={Jobs \texttt{build} et \texttt{test} (\texttt{.gitlab-ci.yml}, lignes 47 à 70).},
-  label=lst:m1-yaml]{.gitlab-ci.yml}
+\preuve[language=yaml, linerange={63-65,69-78,80-81,87-92}, label=lst:m1-yaml]{.github/workflows/ci.yml}
+  {Jobs \texttt{build} et \texttt{test}, extrait du workflow}
 
-\subsection{Preuves d'exécution}
-
-Lancé en root sur une machine à 2 cœurs, \code{mpirun} refuse deux fois de démarrer avant de
-réussir avec les deux options demandées par le sujet (listing~\ref{lst:m1-mpirun}). CTest, configuré
-avec ces options, passe ses deux tests (listing~\ref{lst:m1-ctest}). Le même pipeline, exécuté
-par l'émulateur avec des artefacts isolés entre jobs, donne \code{PASS build} et \code{PASS test}
-(variante A du tableau~\ref{tab:needs}).
-
-\lstinputlisting[caption={\texttt{mpirun} en root sur 2 cœurs : refus, refus, puis succès (\texttt{logs/extraits/m1-mpirun.txt}).},
-  label=lst:m1-mpirun]{logs/extraits/m1-mpirun.txt}
-\lstinputlisting[caption={CTest avec les options du CI (\texttt{logs/m1-ctest.txt}).},
-  label=lst:m1-ctest]{logs/m1-ctest.txt}
-
-\ifgitlab
-Sur GitLab.com, le même pipeline s'exécute sur les runners partagés (listing~\ref{lst:gl-m1}).
-\lstinputlisting[caption={Pipeline de branche sur GitLab.com : jobs et fin du log du job \texttt{test} (\texttt{logs/gitlab/m1-pipeline-main.txt}).},
-  label=lst:gl-m1]{logs/gitlab/m1-pipeline-main.txt}
+\ifgithub
+Sur \code{main}, le run réussit (listing~\ref{lst:m1-run}) : les deux tests CTest passent et le
+test MPI affiche \code{4 ranks on 1 host(s)}.
 \else
-\afaire{exécution de \texttt{scripts/gitlab\_evidence.py} : le log du pipeline de branche sur
-GitLab.com s'insérera ici}
+Localement, \code{mpirun} lancé en root sur 2 cœurs refuse deux fois de démarrer avant de
+réussir avec les deux options demandées par le sujet (listing~\ref{lst:m1-run}).
 \fi
+\preuveou[label=lst:m1-run]{logs/github/m1-main.txt}{Run du workflow sur \texttt{main}}
+  [label=lst:m1-run]{logs/extraits/m1-mpirun.txt}{\texttt{mpirun} en root sur 2 cœurs, exécution locale}
+
+\begin{figtexte}
+\input{logs/figures/runs.tex}
+\commentaire
+La figure~\ref{fig:runs} récapitule les runs des missions 1 à 3, une ligne par événement
+déclencheur. Sur \code{main}, seuls \code{build}, \code{test} et \code{registry_login} sont créés ;
+\code{lint} n'existe que pour une pull request, \code{package} que pour un tag de version, et
+\code{test_slurm} que pour un lancement manuel ou planifié. Les questions qui suivent renvoient
+aux lignes de cette figure.
+\end{figtexte}
 
 \subsection{Questions de cadrage}
 
-\subsubsection{Deux jobs d'un même stage échouent : le pipeline continue-t-il ?}
+\subsubsection{Deux jobs d'un même stage échouent : le pipeline continue-t-il, et pourquoi est-ce souhaitable ?}
 
-Nous avons construit un pipeline de trois builds parallèles, dont deux échouent, suivis d'un
-stage de test (listing~\ref{lst:m1-stage}). On voit que \code{build_intel} échoue en premier sans
-interrompre \code{build_gcc}, qui échoue 2\,s plus tard : les jobs d'un même stage sont
-indépendants et vont tous au bout. On voit aussi que le job \code{test} n'apparaît pas : il n'a
-jamais été lancé, tandis que \code{cleanup}, déclaré \code{when: on_failure}, s'est exécuté. La
-documentation le confirme : les jobs d'un stage ne démarrent qu'après la \emph{réussite} des jobs
-du stage précédent. Il existe trois exceptions : \code{allow_failure: true} rend un échec non
-bloquant, les jobs \code{when: on_failure} ou \code{always} servent au nettoyage et aux
-notifications, et un job relié par \code{needs:} à des jobs qui ont réussi ne dépend pas des
-autres. À l'inverse, \code{workflow:auto_cancel:on_job_failure: all} annule tout au premier échec.
+Les jobs d'un même stage sont indépendants : chacun va au bout, mais le stage suivant ne démarre
+pas. Nous l'avons vérifié sur GitLab avec trois builds parallèles dont deux échouent : le second
+échec arrive deux secondes après le premier, le stage \code{test} n'est jamais lancé et seul un
+job déclaré \code{when: on_failure} s'exécute (\fic{logs/m1-stage-fail.txt}). GitHub Actions n'a
+pas de stages, mais des jobs sans dépendance entre eux jouent le même rôle. Sur la pull request
+où \code{lint} et \code{build} échouent ensemble (figure~\ref{fig:runs}, quatrième ligne), les deux
+vont au bout, \code{registry_login} aussi, et \code{test}, qui dépend de \code{build}, n'est pas
+exécuté. Seules des exceptions explicites lèvent ce blocage : \code{allow_failure} ou
+\code{when: always} sur GitLab, \code{continue-on-error} ou \code{if: always()} sur GitHub.
 
-\lstinputlisting[firstline=26, lastline=38,
-  caption={Deux échecs dans le stage \texttt{build} (\texttt{logs/m1-stage-fail.txt}).},
-  label=lst:m1-stage]{logs/m1-stage-fail.txt}
+Ce comportement est souhaitable parce qu'il fait échouer tôt : tester ou empaqueter un binaire
+qui n'a pas compilé n'a pas de sens, et en HPC l'étape suivante coûte de l'attente en file et
+des heures de calcul. Il empêche aussi de publier un artefact non validé, ce qui explique que
+\code{package} dépende de \code{build} et de \code{test}, et non de \code{build} seul. Enfin,
+laisser aller au bout les jobs indépendants rassemble toutes les causes d'échec, ici l'analyse
+statique et la compilation, dans un seul run.
 
-Ce comportement est souhaitable pour trois raisons. Il fait échouer tôt : tester ou empaqueter
-un binaire qui n'a pas compilé n'a pas de sens, et en HPC l'étape suivante coûte des heures de
-file d'attente et de quota. Il empêche de publier un artefact non validé : c'est aussi pourquoi
-notre job \code{package} déclare \code{needs: [build, test]}, car \code{needs: [build]} seul
-contournerait l'ordre des stages et publierait même si les tests échouent. Enfin, laisser les
-jobs parallèles aller au bout donne toutes les causes d'échec (ici gcc et intel) dans un seul
-pipeline.
+\subsubsection{Quelle différence entre mpirun dans le conteneur CI et une exécution sur le cluster ?}
 
-\subsubsection{Quelle différence entre mpirun dans le conteneur CI et une exécution sur cluster ?}
+Dans le conteneur, le test affiche \code{4 ranks on 1 host(s)} ; sur le cluster, les mêmes
+quatre rangs se répartissent sur deux nœuds (section~\ref{sec:m3-preuves}). La
+figure~\ref{fig:ci-cluster} représente ce qui sépare les deux exécutions.
 
-\begin{table}[ht]
-\centering\small
-\caption{Exécution MPI dans le conteneur CI et sur le cluster.}\label{tab:ci-cluster}
-\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{2.6cm} L L@{}}
-\toprule
- & Conteneur CI (runner partagé) & Cluster (Slurm)\\ \midrule
-Placement & 1 machine de 2 à 4 vCPU : 4 rangs sur 1 hôte, en surréservation & rangs répartis sur plusieurs nœuds alloués\\
-Lancement & \code{mpirun} lance lui-même les processus, sans allocation & \code{srun} dans une allocation Slurm, via PMIx\\
-Communications & mémoire partagée uniquement & réseau entre nœuds, mémoire partagée dans un nœud\\
-Environnement & Open MPI 4.1 de Debian, utilisateur root & MPI du cluster (Spack ou modules), utilisateur sans privilèges\\
-Ce que ça valide & la logique du code sur peu de rangs, à chaque push & l'intégration du code, du MPI, du lanceur et du réseau ; les performances\\
-\bottomrule
-\end{tabularx}
-\end{table}
+\begin{figtexte}
+\begin{tikzpicture}[font=\sffamily\scriptsize]
+  % conteneur CI
+  \draw[vm, fill=oiCiel!10] (0,0) rectangle (6.9,-2.6);
+  \node[anchor=north west, font=\sffamily\footnotesize\bfseries] at (0.05,-0.05) {Conteneur CI};
+  \node[anchor=north east, text=black!60] at (6.85,-0.05) {1 runner, 2 à 4 vCPU};
+  \draw[dashed, oiBleu, rounded corners=3pt] (0.6,-0.6) rectangle (6.3,-1.65);
+  \foreach \i in {0,1,2,3} \node[rang] at (1.4+\i*1.38,-1.05) {\i};
+  \node[text=oiBleu, fill=oiCiel!10, inner sep=1pt] at (3.45,-1.65) {mémoire partagée uniquement};
+  \node[anchor=south, align=center, text=black!75] at (3.45,-2.55)
+    {\texttt{mpirun -np 4 -{}-oversubscribe}\\ \texttt{-{}-allow-run-as-root}, Open MPI 4.1 de Debian};
+  % cluster
+  \draw[vm, fill=oiVert!8] (7.3,0) rectangle (15.9,-2.6);
+  \node[anchor=north west, font=\sffamily\footnotesize\bfseries] at (7.25,-0.05) {Cluster Slurm};
+  \node[anchor=north east, text=black!60] at (15.85,-0.05) {allocation de 2 nœuds $\times$ 2 tâches};
+  \draw[vm, fill=white] (7.6,-0.6) rectangle (10.9,-1.75);
+  \node[anchor=north west, text=black!70] at (7.62,-0.62) {hpc-login};
+  \node[rang] at (8.6,-1.3) {0}; \node[rang] at (9.9,-1.3) {1};
+  \draw[vm, fill=white] (12.3,-0.6) rectangle (15.6,-1.75);
+  \node[anchor=north west, text=black!70] at (12.32,-0.62) {hpc-compute};
+  \node[rang] at (13.3,-1.3) {2}; \node[rang] at (14.6,-1.3) {3};
+  \draw[{Stealth[length=2mm]}-{Stealth[length=2mm]}, very thick, oiOrange] (10.9,-1.2) --
+    node[above, text=black] {TCP} (12.3,-1.2);
+  \node[anchor=south, align=center, text=black!75] at (11.6,-2.55)
+    {\texttt{srun -{}-mpi=pmix} dans l'allocation\\ Open MPI 5 de Spack, utilisateur \texttt{ci}};
+\end{tikzpicture}
+\captionof{figure}{Le même test MPI dans le conteneur CI et sur le cluster : placement des
+rangs, communications et lanceur.}\label{fig:ci-cluster}
+\commentaire
+Dans le conteneur, les quatre rangs partagent une machine de quelques vCPU : il faut
+\code{--oversubscribe} pour lancer plus de rangs que de cœurs et \code{--allow-run-as-root} parce
+que le conteneur tourne en root. Les communications ne passent que par la mémoire partagée, et
+\code{mpirun} crée lui-même les processus, sans allocation. Sur le cluster, \code{srun} lance les
+rangs dans une allocation Slurm, sous un utilisateur sans privilèges et avec l'Open MPI de Spack,
+via PMIx ; les rangs de nœuds différents communiquent par le réseau.
+\end{figtexte}
 
-Le tableau~\ref{tab:ci-cluster} résume les différences ; nos expériences les rendent concrètes.
-En CI, il a fallu \code{--allow-run-as-root} (le conteneur tourne en root) et
-\code{--oversubscribe} (4 rangs pour 2 cœurs), et le test affiche \code{4 ranks on 1 host(s)} :
-aucune communication n'a traversé un réseau et les temps mesurés n'ont aucun sens. Sur le
-mini-cluster, \emph{le même binaire} a échoué de deux façons invisibles en CI : lancé par
-\code{srun} sans PMIx, Open MPI refuse de démarrer, et réparti sur deux nœuds, un rang a planté
-pendant que les autres restaient bloqués jusqu'au wall-time (section~\ref{sec:m3-preuves}). Enfin,
-le binaire produit dans le conteneur est lié à l'Open MPI de l'image Debian, pas à celui du
-cluster : les jobs HPC recompilent sur le nœud de connexion. On en déduit que le CI joue le rôle
-d'un test unitaire du code MPI, et le cluster celui d'un test d'intégration du couple code et
-environnement.
+Les deux exécutions réagissent aussi différemment aux pannes : quand un rang meurt,
+\code{mpirun} arrête tout le job, alors que \code{srun} peut laisser les autres rangs bloqués dans
+une collective jusqu'au wall-time (mission~3). On en déduit que le CI valide la logique du code
+sur peu de rangs à chaque push, comme un test unitaire, tandis que seul le cluster valide
+l'intégration du code, du MPI, du lanceur et du réseau, et produit des temps qui ont un sens. Le
+binaire du conteneur, lié à l'Open MPI de Debian, n'est d'ailleurs pas réutilisé : le job du
+cluster recompile.
 
-\subsubsection{Pourquoi le test échoue-t-il si l'on oublie needs: alors que le build a réussi ?}
+\subsubsection{Pourquoi le test échoue-t-il si l'on oublie needs, alors que le build a réussi ?}
 
-L'expérience nous a obligés à nuancer la question : supprimer \code{needs:} \emph{ne fait pas}
-échouer le test sur GitLab (tableau~\ref{tab:needs}, variante B). Chaque job démarre dans un
-environnement neuf (nouveau conteneur, nouveau clone) où \fic{build/} n'existe pas, mais par
-défaut GitLab télécharge les artefacts de tous les jobs des stages précédents. Le test n'échoue
-que s'il ne reçoit pas l'artefact : avec \code{needs: []}, qui le fait démarrer sans attendre
-(variante C, listing~\ref{lst:m1-needs}), ou s'il est placé dans le même stage que le build
-(variante D). L'échec \enquote{needs oublié} est en revanche systématique sur GitHub Actions, où
-des jobs sans \code{needs:} tournent en parallèle et ne partagent aucun fichier.
+Chaque job démarre dans un environnement neuf. Sur GitHub, \code{test} reçoit une nouvelle VM et
+un nouveau conteneur, sans le répertoire \fic{build/} du job précédent. Sans \code{needs}, GitHub
+le lance en même temps que \code{build}, sur une autre machine : quand il demande l'artefact,
+celui-ci n'existe pas encore, et le téléchargement échoue alors que le build réussit
+(figure~\ref{fig:runs}, deuxième ligne, et listing~\ref{lst:m1-needs}). \code{needs} impose l'ordre
+d'exécution et garantit que l'artefact est publié avant d'être demandé.
 
-\begin{table}[ht]
-\centering\small
-\caption{Effet de \texttt{needs} sur le job \texttt{test} (\texttt{logs/m1-needs.txt}).}\label{tab:needs}
-\begin{tabularx}{\linewidth}{@{}l L c@{}}
-\toprule
-Variante du job \texttt{test} & Comportement observé & Résultat\\ \midrule
-A. \code{needs: [build]} & artefact importé, \code{MPI test passed} & réussi\\
-B. \code{needs:} supprimé & artefact importé quand même (stage précédent) & réussi\\
-C. \code{needs: []} & démarre sans attendre : \code{cd: build: No such file or directory} & échec\\
-D. \code{needs:} supprimé, même stage que \code{build} & jobs parallèles, pas d'artefact : même erreur & échec\\
-\bottomrule
-\end{tabularx}
-\end{table}
+\preuveou[label=lst:m1-needs]{logs/github/m1-sans-needs.txt}{Job \texttt{test} lancé sans \texttt{needs}}
+  [firstline=27, lastline=36, label=lst:m1-needs]{logs/m1-needs.txt}{Variantes de \texttt{needs} sur GitLab, émulateur local}
 
-\lstinputlisting[firstline=27, lastline=36,
-  caption={Variante C : \texttt{needs: []} (\texttt{logs/m1-needs.txt}).},
-  label=lst:m1-needs]{logs/m1-needs.txt}
-
-Sur GitLab, \code{needs:} sert donc à autre chose : le test démarre dès la fin de \code{build} sans
-attendre le reste du stage, et seuls les artefacts listés sont téléchargés (sinon les
-\fic{build/} de plusieurs compilateurs arriveraient tous au même chemin). L'expérience a révélé un
-second piège : \code{ctest} indique \code{Test project .../builds/build/build}, c'est-à-dire le
-répertoire du job \code{build}. Un arbre de build CMake contient des chemins absolus et n'est pas
-relocalisable ; cela fonctionne sur GitLab.com parce que tous les jobs tournent au même chemin
-(\code{/builds/<groupe>/<projet>}), mais nous l'avons payé avec \code{cpack} en mission~2.
+Sur GitLab, l'expérience nous a obligés à nuancer : supprimer \code{needs} ne fait pas échouer le
+test, car les stages imposent déjà l'ordre et un job télécharge par défaut les artefacts de tous
+les stages précédents (\fic{logs/m1-needs.txt}). Le test n'y échoue que s'il démarre sans
+attendre, avec \code{needs: []}, ou s'il est placé dans le même stage que le build. \code{needs}
+sert alors à démarrer plus tôt et à ne télécharger que les artefacts utiles.
 
 \subsection{Erreurs rencontrées et résolution}\label{sec:m1-erreurs}
 
-\begin{table}[ht]
-\centering\small
-\caption{Erreurs de la mission 1.}\label{tab:m1-erreurs}
-\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{4.2cm} L L@{}}
-\toprule
-Symptôme & Cause & Résolution\\ \midrule
-\code{mpirun has detected an attempt to run as root} & le conteneur CI s'exécute en root & \code{--allow-run-as-root}\\
-\code{not enough slots available} & 4 rangs demandés, 2 cœurs & \code{--oversubscribe}, passé à CTest par \code{MPIEXEC_PREFLAGS}\\
-Le test des diapositives passe malgré un bug volontaire (listing~\ref{lst:m1-ndebug}) & \code{Release} ajoute \code{-DNDEBUG}, qui supprime \code{assert()} & vérifications explicites et code retour ; vérifier qu'un test \emph{peut} échouer\\
-Jobs en échec \code{FAIL 100} dans l'émulateur & deux \code{apt-get} parallèles sur la même machine (exécuteur \emph{shell}) & dépendances préinstallées ; résultats écartés\\
-Non observé (pas de Docker en local) & Open MPI en conteneur Docker : copie mémoire CMA impossible & \code{OMPI_MCA_btl_vader_single_copy_mechanism=none}, posé préventivement\\
-\bottomrule
-\end{tabularx}
-\end{table}
+Lancé en root sur 2 cœurs, \code{mpirun} a d'abord refusé de démarrer en root, puis faute
+d'emplacements pour 4 rangs ; les deux options demandées par le sujet lèvent ces refus, et la
+variable CMake \code{MPIEXEC_PREFLAGS} les transmet à CTest.
 
-\lstinputlisting[caption={Le test des diapositives avec un bug volontaire : détecté sans
-\texttt{-DNDEBUG}, invisible en \texttt{Release} (\texttt{logs/m1-ndebug.txt}).},
-  label=lst:m1-ndebug]{logs/m1-ndebug.txt}
+Le test MPI des diapositives, fondé sur \code{assert}, passait même avec un bug volontaire. En
+\code{Release}, CMake ajoute \code{-DNDEBUG}, qui supprime les \code{assert} (listing~\ref{lst:m1-ndebug}).
+Notre test vérifie explicitement chaque résultat et renvoie un code d'erreur.
+
+\preuve[label=lst:m1-ndebug]{logs/m1-ndebug.txt}{Test des diapositives avec un bug volontaire, sans puis avec
+\texttt{-DNDEBUG}}
 
 \subsection{Bilan}
-\begin{description}[font=\normalfont\bfseries, leftmargin=0pt, itemsep=0.2em]
-\item[Ce qui fonctionne :] build CMake, CTest à 1 et 4 rangs, pipeline validé par le schéma
-GitLab et exécuté de bout en bout par l'émulateur.
-\item[Ce qui ne fonctionne pas :] \ifgitlab rien de bloquant ; le pipeline ne teste toutefois
-que 4 rangs sur une seule machine. \else le comportement des runners de GitLab.com reste à relever
-(pas de Docker sur le poste de reproduction).\fi
-\item[À refaire autrement :] écrire d'abord un test qui échoue avant de lui faire confiance ;
-c'est ce qui a révélé le piège de \code{NDEBUG}.
-\end{description}
+
+Le pipeline \code{build} puis \code{test} tourne sur GitHub à chaque push sur \code{main} et sur
+chaque pull request, avec un test MPI capable d'échouer. Il ne teste cependant que quatre rangs
+sur une seule machine, en surréservation, et ne dit rien des performances. Nous écririons
+d'abord un test qui échoue volontairement avant de lui faire confiance : c'est ce qui a révélé le
+piège de \code{NDEBUG}.
 
 % =============================================================================
 \section{Mission 2 : déclencheurs, règles et secrets}
 % =============================================================================
 
-\subsection{Réalisation}
+\subsection{Réalisation et preuves}
 
-Trois jobs s'ajoutent au pipeline (figure~\ref{fig:pipeline}). Le job \code{lint} lance
-\code{cppcheck} avec \code{--error-exitcode=1}, uniquement dans les pipelines de merge request. Le
-job \code{package} ne s'exécute que sur les tags \code{vX.Y.Z} : il archive le binaire, le README et
-un fichier \fic{BUILDINFO.txt} (projet, tag, commit, URL du pipeline, date), puis calcule le
-SHA-256 de l'archive. Le job \code{registry_login} lit la variable masquée et protégée
-\code{FAKE_REGISTRY_TOKEN} et la transmet par l'entrée standard à
-\fic{scripts/fake_docker_login.sh}, qui reproduit le contrat de \code{docker login --password-stdin}
-sans démon Docker. Un bloc \code{workflow:rules} choisit le type de pipeline
-(listing~\ref{lst:m2-workflow}) et les jobs sans condition reçoivent \code{rules: - when: on_success}.
-
-\lstinputlisting[language=yaml, style=numerote, firstnumber=15, linerange={15-23},
-  caption={Choix du type de pipeline (\texttt{.gitlab-ci.yml}, lignes 15 à 23).},
-  label=lst:m2-workflow]{.gitlab-ci.yml}
-
-\subsection{Preuves d'exécution}
-
-L'émulateur évalue les règles pour chaque déclencheur (tableau~\ref{tab:rules}) : \code{lint}
-n'existe que dans le pipeline de MR, \code{package} que pour un tag \code{vX.Y.Z} (pas pour
-\code{seance-inversee}, listing~\ref{lst:m2-regex}), et les jobs Slurm que si un runner HPC est
-déclaré. Sur une branche contenant une erreur volontaire, \code{cppcheck} échoue avec le code 1
-(listing~\ref{lst:m2-lint}). Le pipeline du tag \code{v0.1.0} produit une archive dont le contenu
-et la somme de contrôle se vérifient (listing~\ref{lst:m2-package}).
-
-\begin{table}[ht]
-\centering\small
-\caption{Jobs créés selon le déclencheur (\texttt{logs/m2-rules.txt}).}\label{tab:rules}
-\begin{tabularx}{\linewidth}{@{}L c c c c c@{}}
-\toprule
-Pipeline & \texttt{lint} & \texttt{build}, \texttt{test} & \texttt{package} & \texttt{registry\_login} & \texttt{test\_slurm*}\\ \midrule
-push sur une branche & -- & oui & -- & oui & --\\
-merge request & oui & oui & -- & oui & --\\
-tag \code{v1.2.0} & -- & oui & oui & oui & --\\
-tag \code{seance-inversee} & -- & oui & -- & oui & --\\
-planifié sur \code{main}, \code{HPC_ENABLED=true} & -- & oui & -- & oui & oui\\
-push sur \code{main}, \code{HPC_ENABLED=true} & -- & oui & -- & oui & manuel\\
-\bottomrule
-\end{tabularx}
-\end{table}
-
-\lstinputlisting[caption={Quels tags déclenchent \texttt{package} ? (\texttt{logs/m2-regex.txt}).},
-  label=lst:m2-regex]{logs/m2-regex.txt}
-\lstinputlisting[firstline=4, caption={Lint sur une branche contenant une erreur volontaire (\texttt{logs/m2-lint.txt}).},
-  label=lst:m2-lint]{logs/m2-lint.txt}
-\lstinputlisting[caption={Pipeline du tag \texttt{v0.1.0} : archive, contenu et somme de contrôle (\texttt{logs/extraits/m2-package.txt}).},
-  label=lst:m2-package]{logs/extraits/m2-package.txt}
-
-Pour les secrets, le listing~\ref{lst:m2-secret} montre qu'un utilisateur sans privilèges lit
-en clair, avec \code{ps}, le mot de passe passé en argument à un processus de root, alors que
-\code{--password-stdin} ne laisse rien dans la ligne de commande. L'émulateur n'applique ni le
-masquage ni la protection des variables : ces deux mécanismes ne se vérifient que sur GitLab.com
-(figure~\ref{fig:cap-m2}).
-
-\lstinputlisting[caption={Mot de passe en argument (\texttt{-p}) contre entrée standard (\texttt{logs/m2-secret.txt}).},
-  label=lst:m2-secret]{logs/m2-secret.txt}
-
-\ifgitlab
-Sur GitLab.com (listings~\ref{lst:gl-reg} à~\ref{lst:gl-tag}), la variable apparaît
-\code{[MASKED]} sur \code{main}, branche protégée, et vide dans le pipeline de la merge request ;
-le commit contenant l'erreur volontaire ne crée qu'un pipeline, de type merge request, où
-\code{lint} échoue ; le tag \code{v0.1.0} produit l'archive.
-\lstinputlisting[caption={Variable masquée sur \texttt{main} (\texttt{logs/gitlab/m2-registry-main.txt}).},
-  label=lst:gl-reg]{logs/gitlab/m2-registry-main.txt}
-\lstinputlisting[caption={Merge request avec erreur volontaire : pipelines créés, lint, variable protégée absente (\texttt{logs/gitlab/m2-mr.txt}).},
-  label=lst:gl-mr]{logs/gitlab/m2-mr.txt}
-\lstinputlisting[caption={Pipeline du tag \texttt{v0.1.0} sur GitLab.com (\texttt{logs/gitlab/m2-tag.txt}).},
-  label=lst:gl-tag]{logs/gitlab/m2-tag.txt}
+Trois jobs s'ajoutent au pipeline (listing~\ref{lst:m2-yaml}). Le job \code{lint} lance
+\code{cppcheck} avec \code{--error-exitcode=1} et n'existe que pour l'événement
+\code{pull_request}. Le job \code{package} ne se déclenche que sur un tag \code{vX.Y.Z} ; il
+archive le binaire, le README et un fichier \fic{BUILDINFO.txt} (tag, commit, URL du run),
+calcule le SHA-256 de l'archive et simule la publication avec \fic{scripts/fake_docker_login.sh},
+qui reproduit le contrat de \code{docker login --password-stdin} sans démon Docker. Le secret
+\code{FAKE_REGISTRY_TOKEN}, une fausse valeur,
+\ifnum\pdfstrcmp{\ghsecret}{depot}=0
+est un secret de dépôt : sur un dépôt privé de l'offre gratuite, GitHub n'accepte pas les secrets
+d'environnement.
 \else
-\afaire{exécution de \texttt{scripts/gitlab\_evidence.py} : masquage sur \texttt{main}, merge
-request avec lint en échec et pipeline du tag \texttt{v0.1.0} s'inséreront ici}
+est rangé dans l'environnement \code{release}, que GitHub n'ouvre qu'aux tags \code{v*}.
 \fi
+Le job \code{registry_login}, qui ne déclare pas d'environnement, montre ce qu'un job ordinaire
+voit du secret.
+
+\preuve[language=yaml, linerange={13-18,111-118}, label=lst:m2-yaml]{.github/workflows/ci.yml}
+  {Déclencheurs et en-tête du job \texttt{package}, extrait du workflow}
+
+\ifghdemo
+La figure~\ref{fig:runs} montre l'effet des règles. Le commit de la pull request ne crée qu'un
+run, où \code{lint} échoue sur l'écriture hors du tableau ajoutée volontairement
+(listing~\ref{lst:m2-pr}). Le tag \code{v0.1.0} déclenche \code{package}, qui produit l'archive et
+sa somme de contrôle ; son log n'affiche le secret que sous la forme \code{***}
+(listing~\ref{lst:m2-tag}). Le tag \code{v0.1.0-rc1} ne déclenche aucun run
+(\fic{logs/github/m2-rc1.txt}).
+\else
+Localement, \code{cppcheck} échoue avec le code~1 sur une branche contenant une écriture hors du
+tableau (listing~\ref{lst:m2-pr}), et le pipeline du tag \code{v0.1.0} produit une archive dont le
+contenu et la somme de contrôle se vérifient (listing~\ref{lst:m2-tag}).
+\fi
+
+\preuveou[label=lst:m2-pr]{logs/github/m2-pr.txt}{Pull request avec une erreur volontaire}
+  [label=lst:m2-pr]{logs/m2-lint.txt}{Lint d'une branche avec une erreur volontaire, exécution locale}
+\preuveou[label=lst:m2-tag]{logs/github/m2-tag.txt}{Run du tag \texttt{v0.1.0}}
+  [label=lst:m2-tag]{logs/extraits/m2-package.txt}{Pipeline du tag \texttt{v0.1.0}, émulateur local}
 
 \subsection{Questions de cadrage}
 
-\subsubsection{rules: ou only:/except: : lequel écrire, et où retrouver l'autre ?}
+\subsubsection{rules: ou only:/except: : lequel écrire aujourd'hui, et où retrouver l'autre ?}
 
-Il faut écrire \code{rules:}. La documentation de GitLab classe désormais \code{only} et
-\code{except} parmi les mots-clés dépréciés et renvoie vers \code{rules}. On les retrouve dans les
-dépôts et gabarits anciens, comme le pipeline \enquote{hérité} des diapositives : il faut savoir
-les lire et les traduire (\code{only: merge_requests} devient
-\code{if: $CI_PIPELINE_SOURCE == "merge_request_event"}). Les deux ne se combinent pas dans un même
-job : le validateur de GitLab rejette la configuration (\code{key may not be used with rules}),
-alors que l'émulateur, plus laxiste, l'accepte.
+Il faut écrire \code{rules:}. La documentation de GitLab range \code{only} et \code{except} parmi
+les mots-clés dépréciés et renvoie vers \code{rules}. On les retrouve dans les dépôts et les
+gabarits anciens, comme le pipeline \enquote{hérité} des diapositives : il faut savoir les lire et
+les traduire, \code{only: merge_requests} devenant
+\code{if: $CI_PIPELINE_SOURCE == "merge_request_event"}. Les deux styles ne se combinent pas dans
+un même job : le validateur de GitLab rejette la configuration
+(\code{key may not be used with rules}).
 
-\code{rules:} est plus expressif : conditions sur des variables, \code{changes}, \code{exists},
-première règle vraie gagnante, \code{when: manual} ou \code{never} et \code{allow_failure} par règle ;
-nous nous en servons pour rendre les jobs HPC manuels sur \code{main} et automatiques la nuit.
-Mélanger les deux styles reste un piège, car un job sans règle vaut implicitement
-\code{except: merge_requests}. Avec un \code{lint} limité aux MR et des jobs \code{build} et \code{test}
-sans règle, chaque push sur une branche ayant une MR ouverte crée deux pipelines : un pipeline
-de branche (build et test) et un pipeline de MR (lint seul). D'où le \code{workflow:rules} du
-listing~\ref{lst:m2-workflow}.
+\code{rules:} est aussi plus expressif (conditions sur des variables, \code{changes},
+\code{when: manual} ou \code{never} par règle), mais mélanger les styles reste un piège : un job
+sans règle vaut implicitement \code{except: merge_requests}, ce qui crée deux pipelines par
+commit sur une branche dont la merge request est ouverte. Notre \fic{.gitlab-ci.yml} l'évite par
+un bloc \code{workflow:rules}. GitHub Actions n'a ni l'un ni l'autre : les filtres de \code{on:}
+jouent le rôle de \code{workflow:rules}, et la condition \code{if:} d'un job celui de
+\code{rules:}. Le même piège y existe : déclenché par \code{push} sur toutes les branches et par
+\code{pull_request}, le workflow lancerait deux runs par commit de pull request. Nous limitons donc
+\code{push} à \code{main} et aux tags, et un seul run est créé (listing~\ref{lst:m2-pr}).
 
-\subsubsection{Que devient une variable Protected sur une branche non protégée ?}
+\subsubsection{Que devient une variable Protected depuis une branche non protégée, et quel risque ce mécanisme couvre-t-il ?}
 
-Elle n'est pas injectée : le job démarre avec une variable vide, sans erreur. Notre job affiche
-alors \code{FAKE_REGISTRY_TOKEN vide}, et \code{fake_docker_login.sh} refuse un secret vide (code
-retour 1) ; un vrai job de déploiement doit échouer ainsi, explicitement, plutôt que de continuer
-sans identifiant.
+Sur GitLab, la variable n'est pas injectée : le job démarre sans erreur, avec une variable vide.
+Notre job \code{registry_login} l'affiche alors (\code{FAKE_REGISTRY_TOKEN vide}), et
+\fic{fake_docker_login.sh} refuse un secret vide plutôt que de continuer sans identifiant.
+\ifnum\pdfstrcmp{\ghsecret}{depot}=0
+GitHub propose l'équivalent avec les secrets d'environnement, que notre dépôt privé ne permet
+pas d'utiliser : le secret de dépôt est transmis à tous les runs du dépôt, à l'exception des pull
+requests venant de forks.
+\else
+GitHub va plus loin avec un secret d'environnement : un job qui ne déclare pas l'environnement
+ne le reçoit pas, et un job qui le déclare depuis une référence non autorisée est refusé avant
+de démarrer.\ifghdemo{} Forcé depuis \code{main}, le job \code{package} échoue ainsi sur la règle de
+protection de l'environnement \code{release} (listing~\ref{lst:m2-protection}).\fi
+\fi
+
+\IfFileExists{logs/github/m2-protection.txt}{%
+\preuve[label=lst:m2-protection]{logs/github/m2-protection.txt}{Job \texttt{package} forcé depuis \texttt{main}}}{}
 
 Le risque couvert est l'exfiltration par modification du pipeline. Toute personne qui peut
-pousser une branche peut aussi modifier le \fic{.gitlab-ci.yml} de cette branche : un simple
-\code{echo $TOKEN | base64} ou un \code{curl} vers un serveur externe contourne le masquage, qui ne
-fait que remplacer la valeur exacte dans le log (la documentation précise d'ailleurs que le
-masquage n'est pas une garantie). La protection réserve les secrets aux branches et tags
-protégés, où seuls les mainteneurs poussent ou fusionnent, donc à du code relu en merge request.
-Pour notre pipeline, la clé SSH du cluster et le futur jeton de buildcache sont donc protégés, et
-le runner \code{hpc-login} doit lui aussi être déclaré protégé : sinon, n'importe quelle branche
-pourrait exécuter du code arbitraire sur le nœud de connexion.
+pousser une branche peut aussi y modifier le fichier de pipeline : un \code{echo} du secret
+encodé en base64, ou un \code{curl} vers un serveur extérieur, contourne le masquage, qui ne
+remplace que la valeur exacte dans le log. La protection réserve le secret aux branches et tags
+protégés, où l'on ne pousse ou ne fusionne qu'après relecture. Pour la même raison, GitHub ne
+transmet aucun secret aux pull requests venant de forks, et le runner \code{hpc-login}, qui
+exécute du code sur le nœud de connexion, ne doit servir qu'à un dépôt de confiance.
 
-\subsubsection{Pourquoi ne jamais écrire un secret dans le .gitlab-ci.yml, même temporairement ?}
+\subsubsection{Pourquoi ne jamais écrire un secret dans le fichier de pipeline, même temporairement ?}
 
 Parce que \enquote{temporairement} n'existe pas dans Git. Un secret commité reste dans
-l'historique même après le commit qui le supprime, ainsi que dans tous les clones, forks, diffs de
-MR et caches de GitLab ; l'effacer exige de réécrire l'historique, et le secret doit de toute
-façon être considéré comme compromis et révoqué. Le fichier est en outre lisible par quiconque
-a accès au dépôt (tout le monde si le projet est public, et des robots parcourent les forges à la
-recherche de secrets). Enfin, une valeur écrite en clair n'est pas masquée : le masquage ne
-s'applique qu'aux variables déclarées dans \emph{Settings > CI/CD}, et GitLab recopie chaque ligne
-de script dans le log du job. Passée en argument (\code{-p}), elle apparaît en plus dans \code{ps}
-pour les autres utilisateurs de la machine (listing~\ref{lst:m2-secret}).
+l'historique, les clones, les forks, les diffs et les caches de la forge, même après le commit qui
+le retire ; l'effacer exige de réécrire l'historique, et il doit de toute façon être considéré
+comme compromis et révoqué. Le fichier est lisible par tous ceux qui accèdent au dépôt, par tout
+le monde s'il est public, et des robots parcourent les forges à la recherche de tels secrets.
 
-Les variables de l'interface ont leurs propres contraintes : une valeur masquée doit tenir sur une
-ligne, sans espace, et compter au moins 8 caractères (une fausse valeur trop courte comme
-\code{1234} ne peut pas être masquée). Une variable de type \emph{File} contient le chemin d'un
-fichier temporaire, ce qui convient à une clé SSH que \code{env} n'affichera pas.
+Une valeur écrite en clair n'est pas non plus masquée : le masquage ne s'applique qu'aux secrets
+déclarés dans les réglages, alors que les lignes de script sont recopiées dans le log. Passée en
+argument (\code{-p}), elle apparaît en outre dans \code{ps} pour les autres utilisateurs de la
+machine, ce que montre le listing~\ref{lst:m2-secret} ; \code{--password-stdin} ne laisse rien dans
+la ligne de commande.
+
+\preuve[linerange={1-3}, label=lst:m2-secret]{logs/m2-secret.txt}{Mot de passe passé en argument, lu par un autre
+utilisateur avec \texttt{ps}}
 
 \subsection{Erreurs rencontrées et résolution}
 
-\begin{table}[ht]
-\centering\small
-\caption{Erreurs de la mission 2.}\label{tab:m2-erreurs}
-\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{4.2cm} L L@{}}
-\toprule
-Symptôme & Cause & Résolution\\ \midrule
-Deux pipelines par push sur une branche avec MR ouverte (analyse des règles) & un job sans \code{rules} vaut \code{except: merge_requests} & \code{workflow:rules} et \code{rules: - when: on_success}\\
-Archive \code{cpack} sans \fic{BUILDINFO.txt} (\fic{logs/m2-package-cpack.txt}) & le chemin du build est figé dans le cache CMake : il pointe vers le répertoire du job \code{build} & archive construite avec \code{tar}, vérifiée par \code{tar tzf} et \code{sha256sum -c}\\
-\code{package} pouvait publier un binaire non testé & \code{needs: [build]} contourne l'ordre des stages & \code{needs: [build, test]}, sans les artefacts de \code{test}\\
-Masquage invisible en local & l'émulateur n'implémente pas le masquage & vérification sur GitLab.com\\
-\bottomrule
-\end{tabularx}
-\end{table}
+Notre premier filtre de tags, \code{v*.*.*}, acceptait aussi \code{v1.2.3-rc1} : c'est un motif
+glob, pas une expression régulière. Le motif \code{v[0-9]+.[0-9]+.[0-9]+}, où \code{+} répète le
+caractère précédent dans la syntaxe des filtres de GitHub, n'accepte que \code{vX.Y.Z}.
+
+L'archive produite par \code{cpack} ne contenait pas \fic{BUILDINFO.txt} : le chemin du
+répertoire de build est figé dans le cache CMake et désignait celui du job \code{build}. Le job
+\code{package} construit donc l'archive avec \code{tar}. Il ne dépendait d'abord que de
+\code{build} et aurait publié un binaire non testé ; il dépend désormais aussi de \code{test}.
 
 \subsection{Bilan}
-\begin{description}[font=\normalfont\bfseries, leftmargin=0pt, itemsep=0.2em]
-\item[Ce qui fonctionne :] règles validées pour six types de pipelines, lint qui échoue sur
-une vraie erreur, archive vérifiable (contenu, \code{BUILDINFO}, SHA-256), secret transmis par
-l'entrée standard.
-\item[Ce qui ne fonctionne pas :] \ifgitlab\else masquage et protection non observables hors de
-GitLab.com ; \fi le binaire de l'archive dépend de l'Open MPI de Debian et n'est pas autonome.
-\item[À refaire autrement :] poser \code{workflow:rules} dès le premier job conditionnel, et
-produire les archives de version à partir de l'environnement Spack plutôt que d'une image Debian.
-\end{description}
+
+Les règles se vérifient pour chaque événement : \code{lint} sur les pull requests,
+\code{package} sur les seuls tags \code{vX.Y.Z}, avec une archive vérifiable et un secret
+transmis par l'entrée standard. Le binaire archivé dépend cependant de l'Open MPI de Debian et
+n'est pas autonome. Nous poserions les filtres d'événements et l'environnement protégé dès le
+premier job conditionnel, et produirions l'archive de version depuis l'environnement Spack.
 
 % =============================================================================
 \section{Mission 3 : du CI vers Slurm}
@@ -631,607 +553,370 @@ produire les archives de version à partir de l'environnement Spack plutôt que 
 
 \subsection{Réalisation}
 
-Le job Slurm \fic{slurm/job_ci.sh} (annexe~B) demande 2 nœuds de 2 tâches (nœuds
-\code{e2-standard-2} à 2 vCPU), 5 minutes et la partition \code{debug}. Il charge
-l'environnement dans l'ordre Lmod, environnement Spack du dépôt, puis système, et affiche la
-source retenue ; sur le cluster du Cours 5, sans Lmod, c'est Spack. Il lance
-\code{srun --mpi=pmix --kill-on-bad-exit=1} avec \code{EXPECTED_RANKS=$SLURM_NTASKS} et se termine
-par \code{SUCCESS} ou \code{FAILED}.
+Le job Slurm \fic{slurm/job_ci.sh} demande 2 nœuds de 2 tâches, adaptés aux VM
+\code{e2-standard-2}, cinq minutes et la partition \code{debug}, celle que déclare notre
+\fic{slurm.conf} (vérifiée par \code{sinfo}). Les VM n'ont pas Lmod : comme le sujet le prévoit,
+le script initialise directement l'environnement Spack du dépôt, installé dans \fic{/shared}, et
+n'utilise des modules que s'ils existent. Il lance \code{srun --mpi=pmix --kill-on-bad-exit=1}
+avec \code{EXPECTED_RANKS} égal au nombre de tâches, et se termine par \code{SUCCESS} ou
+\code{FAILED}.
 
-Le script \fic{slurm/submit_and_poll.sh} (annexe~B) soumet le job par \code{sbatch --parsable},
-enregistre son identifiant dans \fic{.slurm_jobid}, puis interroge \code{sacct -X} (repli sur
-\code{squeue} tant que la base n'a pas l'entrée) et affiche l'état, la raison d'attente et le
-temps écoulé. Il reconnaît tous les états terminaux, y compris ceux qu'oublie la boucle des
-diapositives (\code{OUT_OF_MEMORY}, \code{NODE_FAIL}, \code{PREEMPTED}...), archive \code{sacct} et la
-sortie du job, et rend 0 (succès), 1 (échec du job) ou 75 (échec d'infrastructure).
+Le script \fic{slurm/submit_and_poll.sh} soumet le job par \code{sbatch --parsable} et garde son
+identifiant dans \fic{.slurm_jobid}. Il interroge ensuite \code{sacct -X}, avec un repli sur
+\code{squeue} puis \code{scontrol}, affiche à chaque tour l'état, la raison d'attente et le temps
+écoulé, archive \code{sacct} et la sortie du job, et rend 0 pour un succès, 1 pour un échec du job
+et 75 pour un échec d'infrastructure (\code{NODE_FAIL}, \code{BOOT_FAIL}, \code{PREEMPTED}, job
+remis en file ou état introuvable).
 
-Côté GitLab (listing~\ref{lst:m3-yaml}), un gabarit \code{.hpc} porte le tag \code{hpc-login},
-attend le job \code{test} sans récupérer son binaire, recompile avec le MPI du cluster et annule
-le job Slurm dans \code{after_script}. Deux jobs l'utilisent : \code{test_slurm} (suivi, \code{timeout},
-\code{retry}) et \code{test_slurm_wait} (\code{sbatch --wait}).
+Le job \code{test_slurm} (listing~\ref{lst:m3-yaml}) s'exécute sur le runner \code{hpc-login}
+après \code{test}, recompile avec le MPI de Spack, puis soumet et suit le job. Nous avons préféré
+ce runner à une soumission SSH depuis un runner partagé : il n'ouvre aucun port entrant, aucune
+clé SSH ne figure dans les secrets, et il travaille directement sur \fic{/shared}. Le délai du
+job (30~min) dépasse celui de l'étape de soumission (25~min), ce qui laisse à l'étape de
+nettoyage, exécutée même après une annulation (\code{if: always()}), le temps d'annuler le job
+Slurm ; les logs sont archivés dans tous les cas, comme avec \code{artifacts: when: always}.
 
-\lstinputlisting[language=yaml, linerange={140-143,152-158,170-185},
-  caption={Délais, annulation et jobs Slurm (\texttt{.gitlab-ci.yml}, extrait des lignes 140 à 185).},
-  label=lst:m3-yaml]{.gitlab-ci.yml}
+\preuve[language=yaml, linerange={143-160,170-176}, label=lst:m3-yaml]{.github/workflows/ci.yml}
+  {Job \texttt{test\_slurm}, extrait du workflow}
 
-Pour atteindre le cluster, le sujet propose un runner installé sur le nœud de connexion ou une
-connexion SSH depuis un runner partagé (tableau~\ref{tab:runner}). Nous retenons le runner sur
-le nœud de connexion (figure~\ref{fig:archi}) : il n'ouvre aucune connexion entrante, partage
-\fic{/home} avec les nœuds de calcul et ne consomme pas de minutes de runner partagé pendant
-l'attente en file. La variante SSH (\code{test_slurm_ssh}, \fic{slurm/ci_remote.sh}) est écrite
-mais ne s'active que si les variables SSH existent. Le script \fic{scripts/gcp_evidence.sh}
-enregistre le runner (exécuteur shell) quand on lui fournit le jeton créé dans l'interface de
-GitLab, où sont fixés le tag \code{hpc-login} et la protection.
-
-\begin{table}[ht]
-\centering\small
-\caption{Deux façons d'atteindre le cluster depuis GitLab.}\label{tab:runner}
-\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{2.4cm} L L@{}}
-\toprule
- & Runner sur le nœud de connexion & SSH depuis un runner partagé\\ \midrule
-Réseau & connexion sortante uniquement (le runner interroge GitLab en HTTPS) & IP publique et port 22 ouverts ; les IP des runners partagés ne sont pas fixes\\
-Secrets & aucun secret de connexion dans GitLab & clé privée en variable \emph{File} et \emph{Protected}, \code{known_hosts}\\
-Fichiers & build sur \fic{/home} (NFS), visible des nœuds & \code{rsync} aller-retour des sources et des logs\\
-Attente en file & ne coûte rien côté GitLab & minutes de runner partagé consommées\\
-Précautions & runner protégé, utilisateur dédié, aucun calcul sur le nœud de connexion & coupure SSH = job perdu ; \code{after_script} dans un shell séparé\\
-\bottomrule
-\end{tabularx}
-\end{table}
-
-\begin{figure}[ht]
-\centering
-\begin{tikzpicture}[font=\sffamily\footnotesize, x=1cm, y=1cm]
-  \node[boite, fill=oiPourpre!12, text width=2.4cm, align=center, minimum height=2.3cm] (gl) at (0,0)
-    {\textbf{GitLab.com}\\[3pt] dépôt \texttt{mpiflow}\\ pipeline\\ artefacts};
-  \node[boite, fill=oiCiel!14, text width=5.0cm, align=left] (login) at (6.0,0)
-    {\textbf{Nœud de connexion}\\[1pt]
-     {\scriptsize runner GitLab : exécuteur shell, tag \texttt{hpc-login}, protégé}\\[4pt]
-     {\scriptsize 1. activation de l'environnement Spack\\
-      2. compilation avec le MPI du cluster\\
-      3. soumission (\texttt{sbatch -{}-parsable})\\
-      4. suivi (\texttt{sacct}, \texttt{squeue})\\
-      5. artefacts : sortie du job, \texttt{sacct}\\
-      en \texttt{after\_script} : \texttt{scancel}}};
-  \node[boite, fill=oiVert!10, text width=2.6cm, align=center] (ctl) at (12.35,1.0)
-    {\textbf{Slurm}\\ {\scriptsize contrôleur et comptabilité}};
-  \node[boite, fill=oiOrange!18, text width=1.1cm, align=center, font=\sffamily\scriptsize] (n1) at (11.5,-1.05)
-    {nœud 1\\ rangs 0--1};
-  \node[boite, fill=oiOrange!18, text width=1.1cm, align=center, font=\sffamily\scriptsize] (n2) at (13.2,-1.05)
-    {nœud 2\\ rangs 2--3};
-  \node[boite, fill=black!5, minimum width=15.2cm, align=center] (nfs) at (6.25,-2.95)
-    {\texttt{/home} partagé (NFS) : dépôt, build, environnement Spack, sorties des jobs};
-  \draw[{Stealth[length=2.2mm]}-{Stealth[length=2.2mm]}, thick] (gl.east) --
-    node[above, font=\sffamily\scriptsize] {HTTPS}
-    node[below, font=\sffamily\scriptsize] {sortant} (login.west);
-  \draw[fleche] (login.east |- ctl.west) --
-    node[above, font=\scriptsize, align=center] {\texttt{sbatch}\\[-1pt]\texttt{sacct}} (ctl.west);
-  \draw[fleche] (ctl.south) -- node[right, font=\sffamily\scriptsize, pos=0.4] {\texttt{srun}}
-    ($(n1.north)!0.5!(n2.north)$);
-  \draw[black!40, thick] (login.south) -- (login.south |- nfs.north);
-  \draw[black!40, thick] ($(n1.south)!0.5!(n2.south)$) -- ($(n1.south)!0.5!(n2.south)$ |- nfs.north);
-  \draw[fleche, dashed, black!50] (gl.north) to[out=50,in=140]
-    node[above, font=\sffamily\scriptsize, text=black!60] {variante SSH écartée : runner partagé $\to$ port 22 entrant}
-    (login.north);
-\end{tikzpicture}
-\caption{Architecture retenue pour la mission 3. Le runner orchestre depuis le nœud de
-connexion et ne calcule jamais : le calcul a lieu sur les nœuds alloués par Slurm. Le
-\texttt{/home} partagé rend le binaire compilé et les sorties du job visibles des deux côtés. En
-tirets, la variante SSH écartée.}
-\label{fig:archi}
-\end{figure}
+GitHub Actions n'a pas d'équivalent de \code{retry:}. Sur GitLab, \code{retry: when:
+runner_system_failure} relance un job quand c'est le runner qui a défailli (machine perdue,
+exécuteur en erreur), jamais quand le script a échoué ; nous y ajoutons \code{exit_codes: 75} et
+limitons à une relance. Notre étape GitHub reproduit cette logique : elle ne soumet une seconde
+fois que si le premier essai rend le code 75.
 
 \subsection{Preuves d'exécution}\label{sec:m3-preuves}
 
-Toutes les exécutions de cette section ont lieu sur le mini-cluster, soumises par un utilisateur
-sans privilèges ; la figure~\ref{fig:chrono} les replace sur une même échelle de temps. Le cas
-nominal est donné par le listing~\ref{lst:m3-ok} : 4 rangs sur 2 nœuds, \code{ExitCode 0:0},
-ligne \code{SUCCESS}. Une première version du script interrogeait \code{sacct} dès l'état terminal ;
-la comptabilité étant asynchrone, le nom du job et la liste des nœuds n'étaient pas encore à jour
-(listing~\ref{lst:m3-race}). Le script attend désormais quelques secondes avant d'archiver.
-
-\lstinputlisting[caption={Soumission et suivi : succès sur 2 nœuds (\texttt{logs/m3-poll-4-success.txt}).},
-  label=lst:m3-ok]{logs/m3-poll-4-success.txt}
-\lstinputlisting[caption={\texttt{sacct} interrogé trop tôt, puis 3 s plus tard (\texttt{logs/m3-sacct-race.txt}).},
-  label=lst:m3-race]{logs/m3-sacct-race.txt}
-
-\begin{figure}[ht]
-\centering
-\begin{tikzpicture}[x=0.24cm, y=1cm, font=\sffamily\scriptsize]
-  \def\lab{-1.2}
-  % axe
-  \draw[black!60] (0,0.15) -- (46,0.15);
-  \foreach \t in {0,5,...,45} {\draw[black!60] (\t,0.15) -- (\t,0.25); \node[below, text=black!70] at (\t,0.15) {\t};}
-  \node[below, text=black!70] at (23,-0.2) {temps depuis la soumission (s)};
-  % Job 1 : RUNNING 0 -> 313 s, plantage à 1,5 s
-  \node[left, align=right] at (\lab,5.4) {job 1 : un rang plante,\\ sans \texttt{-{}-kill-on-bad-exit}};
-  \fill[oiBleu!75] (0,5.25) rectangle (44,5.55);
-  \draw[decorate, decoration={zigzag, amplitude=1pt, segment length=3pt}, white, line width=1.4pt] (44.3,5.2) -- (44.3,5.6);
-  \fill[oiBleu!75] (44.6,5.25) rectangle (46,5.55);
-  \node[circle, fill=white, inner sep=0.6pt, text=oiVermillon, font=\bfseries\small] at (1.5,5.4) {$\times$};
-  \node[above, text=oiVermillon] at (1.5,5.55) {segfault};
-  \node[above left] at (46,5.55) {TIMEOUT à 313 s};
-  % Job 2
-  \node[left, align=right] at (\lab,4.5) {job 2 : même échec,\\ avec \texttt{-{}-kill-on-bad-exit=1}};
-  \fill[oiBleu!75] (0,4.35) rectangle (1,4.65);
-  \node[text=oiVermillon, font=\bfseries\small] at (1.6,4.5) {$\times$};
-  \node[right] at (2.2,4.5) {FAILED à 1 s};
-  % Job 9
-  \node[left, align=right] at (\lab,3.6) {job 9 : file saturée\\ par le job 8 (4 CPU)};
-  \fill[oiOrange!45] (0,3.45) rectangle (30,3.75);
-  \node at (15,3.6) {PENDING (Resources)};
-  \fill[oiBleu!75] (30,3.45) rectangle (31,3.75);
-  \fill[oiVert] (31.8,3.6) circle[radius=2.2pt];
-  \node[right] at (32.3,3.6) {COMPLETED à 31 s};
-  % Job 13
-  \node[left, align=right] at (\lab,2.7) {job 13 : \texttt{sbatch -{}-wait},\\ CI coupé à 15 s};
-  \fill[oiOrange!45] (0,2.55) rectangle (15,2.85);
-  \node at (7.5,2.7) {PENDING};
-  \draw[black, thick] (15,2.45) -- (15,2.95);
-  \node[right, align=left] at (15.4,2.7) {timeout du CI : le job reste en file\\ \texttt{scancel} $\to$ CANCELLED};
-  % Job 14
-  \node[left, align=right] at (\lab,1.8) {job 14 : panne\\ de \texttt{node2} à 12 s};
-  \fill[oiBleu!75] (0,1.65) rectangle (12,1.95);
-  \node[text=oiVermillon, font=\bfseries\small] at (12.6,1.8) {$\times$};
-  \fill[oiOrange!45] (13.2,1.65) rectangle (18,1.95);
-  \draw[black, thick] (18,1.55) -- (18,2.05);
-  \node[right, align=left] at (18.4,1.8) {NODE\_FAIL, remis en file par Slurm\\ (BeginTime), puis \texttt{scancel} à 18 s};
-  % légende
-  \begin{scope}[shift={(0,-1.05)}]
-    \fill[oiOrange!45] (0,-0.1) rectangle (1.6,0.1); \node[right] at (1.8,0) {PENDING};
-    \fill[oiBleu!75] (8,-0.1) rectangle (9.6,0.1); \node[right] at (9.8,0) {RUNNING};
-    \node[text=oiVermillon, font=\bfseries\small] at (16.5,0) {$\times$}; \node[right] at (17.2,0) {échec};
-    \fill[oiVert] (22.5,0) circle[radius=2.2pt]; \node[right] at (23.1,0) {succès};
-    \draw[black, thick] (28.5,-0.18) -- (28.5,0.18); \node[right] at (29,0) {annulation ou coupure du CI};
-  \end{scope}
-\end{tikzpicture}
-\caption{Chronologie des jobs Slurm des expériences de la mission 3, d'après les heures de
-soumission, de début et de fin enregistrées par \texttt{slurmdbd} (\texttt{logs/m3-chronologie.txt})
-et le journal de \texttt{slurmd} pour l'instant du plantage. L'axe du job 1 est interrompu : ses
-rangs restants sont restés bloqués jusqu'au wall-time de 5 minutes.}
-\label{fig:chrono}
-\end{figure}
-
-\paragraph{Un rang plante, les autres attendent.} Notre première soumission sur deux nœuds a mis
-plus de cinq minutes à échouer (listing~\ref{lst:m3-timeout}) : deux rangs ont planté dans le
-transport mémoire partagée \code{vader}, les deux autres sont restés bloqués dans la collective
-jusqu'à ce que Slurm tue le job au wall-time. Avec \code{srun --kill-on-bad-exit=1}, le même
-échec est détecté en une seconde (listing~\ref{lst:m3-kill}). Le plantage lui-même vient de
-l'émulation : les deux nœuds Slurm sont la même machine, et Open MPI y mélange ses segments de
-mémoire partagée. Sur un seul nœud, le test passe, et sur deux nœuds avec
-\code{OMPI_MCA_btl=self,tcp} aussi (listing~\ref{lst:m3-ok}) ; ce réglage ne concerne que le
-mini-cluster.
-
-\lstinputlisting[caption={Échec lent : TIMEOUT Slurm après 313 s (\texttt{logs/extraits/m3-poll-1-timeout.txt}).},
-  label=lst:m3-timeout]{logs/extraits/m3-poll-1-timeout.txt}
-\lstinputlisting[lastline=21, caption={Échec rapide avec \texttt{-{}-kill-on-bad-exit=1} (\texttt{logs/m3-poll-2-kill.txt}).},
-  label=lst:m3-kill]{logs/m3-poll-2-kill.txt}
-
-\paragraph{File saturée.} Un premier job occupe les 4 CPU du cluster ; le job CI reste
-\code{PENDING (Resources)} pendant 30\,s et le suivi l'affiche à chaque tour
-(listing~\ref{lst:m3-pending}).
-
-\lstinputlisting[caption={Job CI en attente derrière un job qui occupe tout le cluster (\texttt{logs/m3-pending.txt}).},
-  label=lst:m3-pending]{logs/m3-pending.txt}
-
-\paragraph{\texttt{sbatch -{}-wait}.} Le code retour est bien propagé (0 pour un succès, 1 pour un échec,
-\fic{logs/extraits/m3-wait-ok-fail.txt}), mais rien ne s'affiche pendant l'attente. Surtout, quand
-le CI coupe l'attente (un \code{timeout 15} simule ici le \code{timeout:} de GitLab), le job Slurm
-reste en file et s'exécuterait plus tard pour rien (listing~\ref{lst:m3-orphan}).
-
-\lstinputlisting[caption={\texttt{sbatch -{}-wait} coupé par le CI : job orphelin (\texttt{logs/m3-wait-orphan.txt}).},
-  label=lst:m3-orphan]{logs/m3-wait-orphan.txt}
-
-\paragraph{Panne de nœud.} Nous passons \code{node2} en \code{DOWN} pendant un job : le script classe
-l'échec comme une panne d'infrastructure (code 75). Mais Slurm a déjà remis le job en file
-(\code{BeginTime}) : sans \code{scancel}, il repartirait en plus de la relance éventuelle du CI
-(listing~\ref{lst:m3-nodefail}).
-
-\lstinputlisting[caption={Panne de nœud : verdict d'infrastructure et remise en file par Slurm (\texttt{logs/m3-nodefail.txt}).},
-  label=lst:m3-nodefail]{logs/m3-nodefail.txt}
-
-\paragraph{Base de comptabilité arrêtée.} Pendant une session, la base MariaDB du
-mini-cluster s'est arrêtée, et avec elle \code{slurmdbd} : \code{sacct} ne répondait plus. La
-première version du script a alors affiché \code{INCONNU} pendant onze minutes sans jamais
-conclure, exactement le blocage que seul le \code{timeout:} du CI aurait arrêté. Le script
-interroge désormais le contrôleur (\code{scontrol show job}, qui garde les jobs terminés
-5 minutes) quand ni \code{sacct} ni \code{squeue} ne répondent, et rend le code 75 après six tours
-sans état. Relancé avec la base toujours arrêtée, il conclut normalement
-(listing~\ref{lst:m3-dbdown}).
-
-\lstinputlisting[caption={Suivi avec la base de comptabilité arrêtée, avant puis après correction (\texttt{logs/m3-sacct-down.txt}).},
-  label=lst:m3-dbdown]{logs/m3-sacct-down.txt}
-
-\paragraph{srun sans PMI.} Sans \code{--mpi=pmix}, Open MPI détecte le lancement direct par
-\code{srun} et refuse de démarrer (\fic{logs/extraits/m3-singleton.txt}). Le contrôle
-\code{EXPECTED_RANKS} reste utile avec d'autres implémentations MPI, qui peuvent démarrer en
-\enquote{singletons} de taille 1 et réussir à tort (\fic{logs/m1-singleton.txt}).
-
-\paragraph{Sur le cluster GCP.}
-\ifgcp
-Le même script de soumission, lancé depuis le nœud de connexion (\gcpinfo), place cette fois
-les rangs sur deux machines distinctes (listings~\ref{lst:gcp-cluster} et~\ref{lst:gcp-slurm}).
-\lstinputlisting[caption={Le cluster GCP (\texttt{logs/gcp/cluster.txt}).},
-  label=lst:gcp-cluster]{logs/gcp/cluster.txt}
-\lstinputlisting[caption={Soumission et suivi sur le cluster GCP (\texttt{logs/gcp/test\_slurm.txt}).},
-  label=lst:gcp-slurm]{logs/gcp/test_slurm.txt}
-\IfFileExists{logs/gcp/runner.txt}{\lstinputlisting[caption={Enregistrement du runner \texttt{hpc-login} (\texttt{logs/gcp/runner.txt}).}]{logs/gcp/runner.txt}}{}
+\ifghhpc
+Lancé depuis GitHub (listing~\ref{lst:m3-run}), \code{test_slurm} compile avec l'Open MPI de
+Spack, soumet le job et le suit jusqu'à \code{COMPLETED} : les quatre rangs se répartissent sur
+\code{hpc-login} et \code{hpc-compute}, et l'étape de nettoyage constate qu'il n'y a rien à
+annuler.
+\preuve[label=lst:m3-run]{logs/extraits/github-m3-ci-polling.txt}{Job \texttt{test\_slurm} exécuté par le runner
+\texttt{hpc-login}}
 \else
-\afaire{exécution de \texttt{scripts/gcp\_evidence.sh} sur le nœud de connexion : la soumission
-sur deux nœuds réels s'insérera ici}
+Le cas nominal est donné par le listing~\ref{lst:m3-run} : quatre rangs sur deux nœuds,
+\code{ExitCode 0:0}, ligne \code{SUCCESS}.
+\preuveou[label=lst:m3-run]{logs/extraits/cluster-m3-succes.txt}{Soumission et suivi sur le cluster de deux VM}
+  [label=lst:m3-run]{logs/m3-poll-4-success.txt}{Soumission et suivi sur le mini-cluster local}
 \fi
 
-\subsection{Polling ou \texttt{sbatch -{}-wait} ?}
+\begin{figtexte}
+\begin{minipage}{\linewidth}\setlength{\parindent}{1.5em}\noindent\hspace*{1.5em}%
+Pour éprouver le pipeline, \fic{cluster/evidence.sh} rejoue ensuite les situations qu'un nightly
+doit savoir traiter ; la figure~\ref{fig:chrono} les place sur une même échelle de temps.
+\end{minipage}\par\vspace{8pt}
+\input{logs/figures/chrono.tex}
+\commentaire
+Un rang qui plante donne \code{FAILED} en quelques secondes, parce que
+\code{--kill-on-bad-exit} arrête les autres rangs ; un rang bloqué retient au contraire les autres
+dans la collective, et seul le wall-time de Slurm y met fin (\code{TIMEOUT}). Derrière un job qui
+occupe les quatre CPU, le job du CI attend en \code{PENDING}, avec la raison \code{Resources},
+puis réussit. Dans le scénario \enquote{attente, timeout CI}, le suivi est coupé au bout de
+40~s alors que le job attend encore : sans le \code{scancel} de l'étape de nettoyage, il
+resterait en file. Enfin, quand \code{slurmd} est tué sur \code{hpc-compute}, Slurm déclare le
+nœud hors service, passe le job en \code{NODE_FAIL} et le remet aussitôt en file
+(listing~\ref{lst:m3-nodefail}) ; le script rend 75 et le job remis en file est annulé.
+\end{figtexte}
 
-\begin{table}[ht]
-\centering\small
-\caption{Suivi par polling et \texttt{sbatch -{}-wait}, d'après nos essais.}\label{tab:polling}
-\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{2.6cm} L L@{}}
-\toprule
- & Polling (\texttt{submit\_and\_poll.sh}) & \texttt{sbatch -{}-wait}\\ \midrule
-Taille & script d'une soixantaine de lignes, réutilisable & une à trois lignes\\
-Pendant l'attente & état, raison et temps écoulé à chaque tour & silence total\\
-Code retour & vérifié (\code{ExitCode} et ligne \code{SUCCESS}) et classé : code 1, infrastructure 75 & propagé tel quel, sans la cause\\
-Après un timeout du CI & identifiant connu, \code{after_script} annule le job & job orphelin, sauf \code{--parsable > .slurm_jobid}\\
-Charge & une requête \code{sacct} par intervalle (30\,s) & aucune requête du script\\
-\bottomrule
-\end{tabularx}
-\end{table}
+\preuveou[label=lst:m3-nodefail]{logs/extraits/cluster-m3-nodefail.txt}{Panne d'un nœud pendant le job (extrait)}
+  [label=lst:m3-nodefail]{logs/m3-nodefail.txt}{Panne d'un nœud pendant le job, mini-cluster local}
 
-Le tableau~\ref{tab:polling} compare les deux versions. Nous choisissons le polling pour le
-pipeline principal et le nightly : la file est imprévisible, et il faut savoir où en était le job
-et distinguer les échecs. \code{sbatch --wait} convient aux jobs courts sur une partition de debug
-peu chargée et aux scripts qui enchaînent des soumissions (comme la boucle de passage à l'échelle
-des diapositives), à condition d'écrire l'identifiant du job pour pouvoir l'annuler.
+\IfFileExists{logs/github/m3-ci-annulation.txt}{%
+Le même nettoyage a été vérifié depuis GitHub : un run annulé pendant que le job attendait en
+file laisse l'étape de nettoyage annuler le job Slurm (listing~\ref{lst:m3-cancel}).
+\preuve[label=lst:m3-cancel]{logs/extraits/github-m3-ci-annulation.txt}{Run annulé pendant l'attente du job
+Slurm}}{}
+
+\subsection{Polling ou sbatch -{}-wait ?}
+
+\code{sbatch --wait} tient en une ligne et propage le code retour du job
+(\ifcluster\fic{logs/cluster/m3-wait.txt}\else\fic{logs/extraits/m3-wait-ok-fail.txt}\fi), mais
+n'affiche rien pendant l'attente et, si le CI le coupe, laisse le job en file à moins d'avoir
+enregistré son identifiant. Le polling coûte un script et une requête \code{sacct} par
+intervalle, mais montre l'état et la raison d'attente, classe les échecs (code 1 ou 75) et garde
+l'identifiant pour \code{scancel}. Nous réservons donc \code{--wait} aux jobs courts sur une
+partition peu chargée, et utilisons le polling pour le pipeline et le nightly.
 
 \subsection{Questions de cadrage}
 
-\subsubsection{Pourquoi le job CI doit-il porter un timeout: alors que le job Slurm a un wall-time ?}
+\subsubsection{Pourquoi le job CI doit-il porter un timeout alors que le job Slurm a déjà son wall-time ?}
 
-Parce que les deux horloges ne mesurent pas la même chose. Le wall-time de Slurm ne compte que le
-temps passé en \code{RUNNING} ; l'attente en \code{PENDING} n'est bornée par rien (30\,s dans notre
-expérience, des heures sur un cluster chargé). La durée du job CI vaut attente, plus exécution,
-plus latence du suivi. Le job CI peut aussi se bloquer indépendamment de Slurm : la boucle des
-diapositives tourne indéfiniment sur un état qu'elle ne connaît pas (\code{NODE_FAIL},
-\code{OUT_OF_MEMORY}...) ou si \code{sacct} ne répond plus, et une connexion SSH peut rester
-pendante. Pendant ce temps, le job occupe un emplacement de runner, et des minutes facturées
-dans la variante SSH.
+Parce que les deux horloges ne mesurent pas la même chose. Le wall-time ne compte que le temps
+passé en \code{RUNNING} ; l'attente en \code{PENDING} n'est bornée par rien, et la durée du job CI
+vaut attente, plus exécution, plus latence du suivi. Le job CI peut aussi se bloquer sans que
+Slurm y soit pour quelque chose : une boucle de suivi qui ignore un état comme \code{NODE_FAIL},
+une base de comptabilité arrêtée (section~\ref{sec:m3-erreurs}), une connexion SSH pendante. Sans
+\code{timeout}, le runner resterait occupé jusqu'à la limite par défaut, six heures sur GitHub.
 
-Le \code{timeout:} doit donc dépasser le wall-time plus une attente raisonnable, sans quoi il
-tuerait un job légitime : nous avons 5\,min de wall-time et 45\,min de \code{timeout}. Cela ne
-suffit pas : à l'expiration, GitLab arrête le script, et si \code{after_script} n'a pas le temps de
-s'exécuter, le job Slurm reste en file. La documentation impose que \code{RUNNER_SCRIPT_TIMEOUT}
-et \code{RUNNER_AFTER_SCRIPT_TIMEOUT} ne dépassent pas ensemble le \code{timeout} du job, d'où
-40\,min et 3\,min pour 45\,min (listing~\ref{lst:m3-yaml}). Notre premier essai illustre l'autre
-sens : un rang planté, les autres bloqués, et seul le wall-time de Slurm a mis fin au gâchis. Les
-deux garde-fous sont complémentaires.
+Le \code{timeout} doit donc dépasser le wall-time et une attente raisonnable (5 et 30~minutes
+chez nous), et laisser le temps de nettoyer : à son expiration, la plateforme coupe le script, et
+le job Slurm resterait en file si personne ne l'annulait. D'où, sur GitHub, une étape de
+soumission plus courte que le job, et sur GitLab \code{RUNNER_SCRIPT_TIMEOUT} et
+\code{RUNNER_AFTER_SCRIPT_TIMEOUT} dont la somme reste sous le \code{timeout}. Les deux
+garde-fous sont complémentaires : le wall-time arrête un calcul bloqué, le \code{timeout} du CI
+une attente sans fin (figure~\ref{fig:chrono}).
 
-\subsubsection{Le job Slurm reste PENDING 20 minutes : que se passe-t-il côté GitLab ?}
+\subsubsection{Le job Slurm reste PENDING vingt minutes : que se passe-t-il côté CI, et comment le rendre observable ?}
 
-Côté GitLab, le job est \enquote{running} : le runner exécute la boucle de suivi. Il occupe un
-emplacement du runner, si bien que les autres pipelines attendent, consomme des minutes de
-runner partagé dans la variante SSH, et bloque la suite du pipeline (et une MR si le job est
-requis). Avec \code{sbatch --wait}, le log reste vide pendant 20 minutes : impossible de distinguer
-une file pleine d'un blocage. Si l'attente et l'exécution dépassent le \code{timeout}, le job CI
-échoue et le job Slurm reste en file s'il n'est pas annulé (figure~\ref{fig:chrono}, job 13).
+Côté CI, le job est \enquote{en cours} : le runner exécute la boucle de suivi et reste occupé,
+si bien que les autres jobs destinés à \code{hpc-login} attendent, et la suite du run, ainsi
+qu'une pull request si le job est requis, reste bloquée. Avec une soumission SSH depuis un runner
+partagé, ces vingt minutes seraient en outre décomptées. Si l'attente dépasse le
+\code{timeout}, le job CI échoue et le job Slurm reste en file s'il n'est pas annulé. Avec
+\code{sbatch --wait}, le log reste vide pendant toute l'attente : impossible de distinguer une
+file pleine d'un blocage.
 
-Pour le rendre observable, notre script affiche à chaque tour l'heure, le temps écoulé, l'état et
-la raison donnée par Slurm (\code{Resources}, \code{Priority}, \code{QOSMaxJobsPerUserLimit},
-\code{ReqNodeNotAvail}...), puis une fois l'heure de démarrage estimée par \code{squeue --start},
-qui reste \code{N/A} tant que l'ordonnanceur n'a pas calculé de prévision. L'identifiant est
-conservé, et \code{sacct} et la sortie du job sont archivés même en cas d'échec. On peut aller plus
-loin avec \code{sbatch --test-only} pour estimer le démarrage avant de soumettre, une partition ou
-une QoS réservée au CI, et une alerte au-delà d'un seuil d'attente. Sur un cluster
-cloud dont les nœuds sont créés à la demande, une partie de l'attente vient en outre du
-démarrage des VM, que \code{sinfo} signale par un suffixe sur l'état des nœuds.
+Pour le rendre observable, notre script affiche à chaque tour l'heure, le temps écoulé, l'état
+et la raison donnée par Slurm (\code{Resources}, \code{Priority}, \code{BeginTime},
+\code{ReqNodeNotAvail}...), puis l'heure de démarrage estimée par \code{squeue --start}, qui vaut
+\code{N/A} tant que l'ordonnanceur n'a rien calculé (listing~\ref{lst:m3-pending}). On peut aller
+plus loin avec \code{sbatch --test-only} avant de soumettre, une partition réservée au CI, ou une
+alerte au-delà d'un seuil d'attente.
 
-\subsubsection{Le nightly échoue à 2 h du matin : que se demander avant de relancer ?}
+\preuveou[lastline=14, label=lst:m3-pending]{logs/extraits/cluster-m3-file-pleine.txt}{Job du CI en attente derrière un job qui occupe
+le cluster (début)}[label=lst:m3-pending]{logs/m3-pending.txt}{Job du CI en attente derrière un job qui occupe le
+cluster, mini-cluster local}
 
-Trois questions, dans l'ordre :
-\begin{enumerate}
-\item \textbf{Quel type d'échec ?} La raison donnée par GitLab (\code{script_failure} contre
-\code{runner_system_failure}, \code{runner_interrupted} ou timeout) et l'état Slurm (\code{FAILED} avec
-un \code{ExitCode}, contre \code{NODE_FAIL}, \code{BOOT_FAIL}, \code{PREEMPTED} ; \code{TIMEOUT} de Slurm
-contre timeout de GitLab). Notre script y répond directement : code 1 ou code 75.
-\item \textbf{Ai-je les logs ?} Les artefacts conservés même en cas d'échec (\code{when: always}) :
-\fic{ci-JOBID.out}, \fic{sacct-JOBID.txt} et le rapport de tests, puis \code{sacct -j JOBID
---format=ALL} pour la mémoire et le nœud. Sans logs, c'est l'observabilité qu'il faut réparer
-avant de relancer.
-\item \textbf{Qu'est-ce qui a changé depuis le dernier nightly réussi ?} Commits fusionnés sur
-\code{main}, différences du \fic{spack.lock}, maintenance du cluster, quota ou crédits GCP épuisés.
-Si rien n'a changé dans le dépôt, l'infrastructure est la première suspecte.
-\end{enumerate}
-On peut en ajouter une quatrième : quelqu'un doit-il vraiment se lever ? Un nightly en échec
-bloque rarement une version ; les alertes immédiates se réservent à \code{main} et aux tags.
+\subsubsection{Le nightly échoue à 2 h du matin : quelles questions se poser avant de relancer ?}
 
-Un échec de code est déterministe et lié à un commit : test en échec, \code{FAILED} avec un
-\code{ExitCode} non nul, assertion, segfault dans notre code. Le relancer ne sert à rien, masque les
-tests instables et consomme des heures de calcul : il faut corriger. Un échec d'infrastructure est
-transitoire et indépendant du code : runner perdu, nœud défaillant, VM impossible à créer (quota
-ou ressources de la zone épuisés), préemption, NFS. Une relance automatique, limitée à une, est
-alors légitime. D'où notre configuration : \code{retry} avec \code{max: 1},
-\code{when: [runner_system_failure, runner_interrupted]} et \code{exit_codes: 75}. La documentation
-récente indique que GitLab 19.1 a séparé de \code{runner_system_failure} les cas
-\code{runner_interrupted} et \code{runner_external_dependency_failure} : ne lister que l'ancienne
-valeur ne couvre plus un runner redémarré. Enfin, Slurm remet lui-même en file un job après
-\code{NODE_FAIL} : il faut l'annuler avant que le CI ne relance, sinon le test tourne deux fois.
+Nous nous posons trois questions. La première porte sur le type d'échec : la conclusion du job CI
+(échec du script, runner perdu, \code{timeout}) et l'état Slurm (\code{FAILED} avec un
+\code{ExitCode}, \code{TIMEOUT}, ou \code{NODE_FAIL}, \code{BOOT_FAIL}, \code{PREEMPTED}) le disent,
+et notre script le résume par son code retour. La deuxième porte sur les logs : la sortie
+\fic{ci-JOBID.out}, \fic{sacct-JOBID.txt} et le log du job CI sont archivés même en cas d'échec ;
+s'ils manquent, c'est l'observabilité qu'il faut réparer avant de relancer. La troisième porte
+sur ce qui a changé depuis le dernier nightly réussi : commits fusionnés, \fic{spack.lock},
+maintenance du cluster, quotas ou crédits GCP. Si rien n'a changé dans le dépôt,
+l'infrastructure est la première suspecte.
 
-\subsection{Erreurs rencontrées et résolution}
+Un échec de code est déterministe et lié à un commit : test faux, \code{FAILED} avec un
+\code{ExitCode} non nul, plantage ou blocage dans notre code, comme les scénarios \enquote{un
+rang plante} et \enquote{un rang bloqué}. Le relancer ne sert à rien et masquerait un test
+instable : il faut corriger. Un échec d'infrastructure est transitoire et indépendant du code :
+runner perdu, nœud en panne comme dans le scénario \code{NODE_FAIL}, VM impossible à créer faute
+de quota, préemption, NFS indisponible. Une relance automatique, limitée à une, est alors
+légitime, mais seulement après avoir annulé le job que Slurm a déjà remis en file, sinon le test
+tourne deux fois.
 
-\begin{table}[ht]
-\centering\small
-\caption{Erreurs de la mission 3.}\label{tab:m3-erreurs}
-\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{4.2cm} L L@{}}
-\toprule
-Symptôme & Cause & Résolution\\ \midrule
-\code{Could not establish a configuration source} & Slurm installé sans \fic{slurm.conf} & écriture de \fic{slurm.conf} et \fic{slurmdbd.conf}, démarrage des démons\\
-Segfault dans \code{mca_btl_vader} sur 2 nœuds & émulation : deux nœuds Slurm sur une même machine & 1 nœud : OK ; 2 nœuds : \code{OMPI_MCA_btl=self,tcp} (mini-cluster seulement)\\
-Rangs survivants bloqués 5\,min & \code{srun} laisse tourner les autres tâches & \code{--kill-on-bad-exit=1} : échec en 1\,s\\
-\code{OMPI was not built with SLURM's PMI support} & \code{srun} sans plugin PMI & \code{srun --mpi=pmix}\\
-\code{sacct} : \code{JobName=allocation}, nœuds incomplets & enregistrement asynchrone dans \code{slurmdbd} & attente de 5\,s avant l'archivage\\
-Suivi bloqué sur \code{INCONNU} pendant 11\,min (listing~\ref{lst:m3-dbdown}) & base MariaDB, donc \code{slurmdbd}, arrêtée & repli sur \code{scontrol show job}, code 75 après six tours sans état\\
-Job relancé par Slurm après \code{NODE_FAIL} & remise en file automatique par défaut & \code{scancel} en \code{after_script}\\
-\code{after_script} non exécuté après un timeout (documentation) & le timeout global coupe aussi \code{after_script} & 40\,min + 3\,min < \code{timeout} de 45\,min\\
-Jobs \code{tags: [hpc-login]} en attente sans fin sur GitLab.com (anticipé) & aucun runner ne porte ce tag & jobs créés seulement si \code{HPC_ENABLED} vaut \code{true}\\
-\bottomrule
-\end{tabularx}
-\end{table}
+\subsection{Erreurs rencontrées et résolution}\label{sec:m3-erreurs}
+
+Notre première soumission sur deux nœuds a mis plus de cinq minutes à échouer : deux rangs ont
+planté dans le transport mémoire partagée d'Open MPI et les deux autres sont restés bloqués
+jusqu'au wall-time. Avec \code{--kill-on-bad-exit=1}, le même échec est détecté en une seconde.
+Le plantage venait du mini-cluster local, dont les deux nœuds Slurm étaient la même machine.
+
+Sans \code{--mpi=pmix}, Open MPI refuse de démarrer sous \code{srun}. Avec d'autres
+implémentations, les rangs peuvent démarrer en \enquote{singletons} de taille~1 et réussir à
+tort : c'est ce que détecte le contrôle \code{EXPECTED_RANKS}.
+
+Interrogé dès la fin du job, \code{sacct} renvoyait encore un nom de job et une liste de nœuds
+incomplets, car la comptabilité est asynchrone ; le script attend quelques secondes avant
+d'archiver. Lors d'une autre session, la base de comptabilité s'est arrêtée et le suivi a affiché
+un état inconnu pendant onze minutes sans conclure (\fic{logs/m3-sacct-down.txt}) : le script
+interroge désormais le contrôleur avec \code{scontrol show job} et rend 75 après six tours sans
+état.
+
+Enfin, avec un intervalle de suivi de 20~s, le script n'a pas vu l'état \code{NODE_FAIL} : Slurm
+avait déjà remis le job en file, et le suivi l'aurait attendu jusqu'au \code{timeout}. Un job
+\code{PENDING} dont le compteur \code{Restarts} est positif est maintenant classé comme un échec
+d'infrastructure (\fic{logs/m3-requeue.txt}).
 
 \subsection{Bilan}
-\begin{description}[font=\normalfont\bfseries, leftmargin=0pt, itemsep=0.2em]
-\item[Ce qui fonctionne :] soumission, suivi, verdict classé (0, 1 ou 75) et annulation des
-jobs orphelins, testés sur un vrai Slurm avec comptabilité, file saturée et panne de nœud.
-\item[Ce qui ne fonctionne pas :] \ifgcp si la base de comptabilité reste arrêtée plus de 5
-minutes après la fin du job, le contrôleur l'a oublié et le code retour est perdu : le script
-conclut alors à un échec. \else pas encore
-d'exécution sur des nœuds réellement distincts ; le transport mémoire partagée n'a pas pu être
-testé en conditions réelles.\fi
-\item[À refaire autrement :] tester les cas d'échec (plantage, file pleine, panne) avant le cas
-nominal : chacun a révélé un défaut du script.
-\end{description}
+
+La soumission, le suivi, le verdict classé (0, 1 ou 75) et l'annulation des jobs orphelins
+fonctionnent \ifghhpc sur un vrai cluster de deux nœuds, depuis GitHub,\else sur le mini-cluster
+local,\fi{} y compris en cas de file saturée, de blocage ou de panne de nœud. Si la base de comptabilité reste arrêtée plus de cinq
+minutes après la fin du job, le contrôleur l'a oublié et le code retour est perdu. Nous
+testerions les cas d'échec avant le cas nominal, car chacun a révélé un défaut du script.
 
 % =============================================================================
 \section{Mission 4 : Spack, l'environnement comme code}
 % =============================================================================
 
-\subsection{Réalisation}
+\subsection{Réalisation et preuves}
 
-Spack est cloné dans le répertoire personnel au tag \code{v1.2.2} plutôt que sur la branche
-\code{develop}, car la version de Spack fait partie de ce qu'il faut figer. \code{spack compiler
-find} détecte le GCC 13.3 du système, déclaré comme paquet externe : Spack ne le recompile pas.
-L'environnement \fic{spack/} demande \code{openmpi@5 schedulers=slurm %gcc} et \code{cmake %gcc}
-(listing~\ref{lst:m4-yaml}). Deux réglages se sont imposés à l'expérience. D'une part, une cible
-générique \code{x86_64_v3} : \code{spack arch} donne \code{icelake} sur notre machine, alors que les
-VM \code{e2} reçoivent, selon la disponibilité, un Xeon Haswell, Broadwell ou Skylake ou un AMD EPYC
-Rome, dont \code{x86_64_v3} est le dénominateur commun. D'autre part, le Slurm du système est
-déclaré externe et non constructible : sans cela, \code{schedulers=slurm} fait compiler par Spack
-un Slurm complet, avec Python et GLib (76 paquets à construire au lieu de 46).
+Spack est cloné au tag \code{v1.2.2} plutôt que sur la branche \code{develop}, car sa version
+fait partie de ce qu'il faut figer ; sur le cluster, il est installé dans \fic{/shared}.
+\code{spack compiler find} détecte le GCC 13.3 du système, utilisé comme paquet externe : Spack ne
+le recompile pas. L'environnement \fic{spack/} demande \code{openmpi@5 schedulers=slurm %gcc} et
+\code{cmake %gcc} (listing~\ref{lst:m4-yaml}). Trois réglages se sont imposés à l'expérience : une
+cible générique \code{x86_64_v3}, car \code{spack arch} donne \code{icelake} sur notre poste alors
+que les VM \code{e2} peuvent recevoir un processeur Intel ou AMD ; le Slurm du système déclaré
+externe et non constructible, faute de quoi Spack en compile un complet ; et le dépôt de
+recettes fixé à un commit, puisque les recettes évoluent indépendamment de Spack depuis la
+version~1.0.
 
-\lstinputlisting[language=yaml, style=numerote,
-  caption={Manifeste de l'environnement (\texttt{spack/spack.yaml}).},
-  label=lst:m4-yaml]{spack/spack.yaml}
+\preuve[language=yaml, label=lst:m4-yaml]{spack/spack.yaml}{Manifeste de l'environnement}
 
-La concrétisation produit 49 specs, dont 46 à construire et 3 externes : GCC, la glibc et Slurm
-(listing~\ref{lst:m4-conc}). Les deux fichiers sont commités dans \fic{spack/} ; la vue et l'état
-local (\fic{spack/.spack-env/}) sont ignorés par Git.
-
-\lstinputlisting[lastline=17, caption={Début de la concrétisation (\texttt{logs/m4-concretize.txt}) :
-\texttt{-} à construire, \texttt{[e]} externe.},
-  label=lst:m4-conc]{logs/m4-concretize.txt}
-
-\ifgcp
-Sur le nœud de connexion GCP, le script \fic{scripts/gcp_evidence.sh} adapte le Slurm externe
-au cluster, concrétise de nouveau l'environnement (le verrou commité est celui-là) et l'installe
-depuis les sources en \spackinstalltime{} (listing~\ref{lst:gcp-spack}) : c'est le coût que
-chaque pipeline paierait sans buildcache.
-\lstinputlisting[caption={Concrétisation et installation sur le cluster GCP (\texttt{logs/gcp/spack.txt}, \texttt{spack-install.txt}).},
-  label=lst:gcp-spack]{logs/gcp/spack.txt}
-\lstinputlisting{logs/gcp/spack-install.txt}
-\else
-\afaire{exécution de \texttt{scripts/gcp\_evidence.sh} : concrétisation sur le cluster cible et
-durée de l'installation}
-\fi
-
-\subsection{spack.yaml et spack.lock}
-
-\begin{table}[ht]
-\centering\small
-\caption{Ce que décrivent le manifeste et le verrou.}\label{tab:yaml-lock}
-\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{2.4cm} L L@{}}
-\toprule
- & \texttt{spack.yaml} (manifeste) & \texttt{spack.lock} (verrou)\\ \midrule
-Contenu & des intentions : specs abstraites, contraintes, configuration (cible, externes, vue) & le résultat de la concrétisation : le graphe complet\\
-Versions & une contrainte sur OpenMPI, rien sur les dépendances & toutes : \code{openmpi@5.0.10}, \code{pmix@6.1.0}, \code{cmake@3.31.11}...\\
-Variants & ceux qu'on impose (\code{schedulers=slurm}) & tous, y compris les valeurs par défaut\\
-Compilateurs & \texttt{\%gcc} & \code{gcc@13.3.0}, nœud du graphe (dépendance de compilation)\\
-Identité & -- & hash de chaque nœud, arêtes typées (\code{build}, \code{link}), OS et cible\\
-Forme & 27 lignes de YAML commenté, écrites à la main & JSON généré : 64\,Ko, 49 specs\\
-\bottomrule
-\end{tabularx}
-\end{table}
-
-\begin{figure}[ht]
-\centering
-\begin{tikzpicture}[font=\sffamily\scriptsize, x=1cm, y=1cm,
+\begin{figtexte}
+\begin{tikzpicture}[font=\sffamily\scriptsize,
     spec/.style={draw=oiBleu, fill=oiBleu!10, rounded corners=2pt, align=center,
-      inner sep=3pt, text width=1.5cm},
+      inner sep=2.5pt, minimum width=1.35cm},
     ext/.style={spec, draw=black!45, fill=black!6, dashed},
     racine/.style={draw=oiBleu, fill=oiBleu!28, rounded corners=2pt, align=center,
-      inner sep=4pt, font=\sffamily\footnotesize}]
-  \newcommand{\spk}[3]{\textbf{#1}\\ @#2\\ {\ttfamily #3}}
-  \node[racine] (ompi) at (4.8,2.0) {\textbf{openmpi@5.0.10}\\ {\ttfamily iftmwb3}};
-  \node[racine] (cmake) at (12.6,2.0) {\textbf{cmake@3.31.11}\\ {\ttfamily nxsxsy2}};
-  \node[spec] (pmix)  at (0.9,0)   {\spk{pmix}{6.1.0}{2af34qh}};
-  \node[spec] (prrte) at (2.85,0)  {\spk{prrte}{4.1.0}{s5tkl45}};
-  \node[spec] (hwloc) at (4.8,0)   {\spk{hwloc}{2.13.0}{3hmup55}};
-  \node[spec] (lev)   at (6.75,0)  {\spk{libevent}{2.1.12}{j4kmbgk}};
-  \node[ext]  (slurm) at (8.7,0)   {\spk{slurm}{23.11.4}{externe /usr}};
-  \node[ext]  (gcc)   at (10.65,0) {\spk{gcc}{13.3.0}{externe /usr}};
-  \node[spec] (curl)  at (12.6,0)  {\spk{curl}{8.20.0}{i6kir7u}};
-  \node[spec] (ncur)  at (14.55,0) {\spk{ncurses}{6.6}{h5ybcvi}};
-  \foreach \n in {pmix,prrte,hwloc,lev,slurm}
-    \draw[-{Stealth[length=1.6mm]}, black!70] (ompi.south) -- (\n.north);
-  \draw[-{Stealth[length=1.6mm]}, black!70, dashed] (ompi.south) -- (gcc.north);
-  \foreach \n in {curl,ncur} \draw[-{Stealth[length=1.6mm]}, black!70] (cmake.south) -- (\n.north);
-  \draw[-{Stealth[length=1.6mm]}, black!70, dashed] (cmake.south) -- (gcc.north);
-  \node[text=black!65] at (7.7,-1.05) {+ 39 autres specs (autotools, perl, openssh, zlib-ng, numactl...)};
-  \begin{scope}[shift={(0.1,-1.65)}]
-    \draw[-{Stealth[length=1.6mm]}, black!70] (0,0) -- (0.7,0) node[right, black] {dépendance de build et d'édition de liens};
-    \draw[-{Stealth[length=1.6mm]}, black!70, dashed] (6.5,0) -- (7.2,0) node[right, black] {build seulement};
-    \node[draw=black!45, fill=black!6, dashed, rounded corners=1pt, minimum width=0.6cm, minimum height=0.25cm, inner sep=0pt] at (10.9,0) {};
-    \node[right] at (11.25,0) {externe, non reconstruit};
-  \end{scope}
+      inner sep=3pt, font=\sffamily\footnotesize},
+    dep/.style={-{Stealth[length=1.5mm]}, black!65}]
+  \node[draw=oiOrange, fill=oiOrange!12, rounded corners=3pt, align=left, inner sep=5pt,
+        text width=5.3cm] (yaml) at (2.8,-1.0)
+    {\textbf{spack.yaml} : des intentions\\[3pt]
+     {\ttfamily openmpi@5 schedulers=slurm \%gcc\\ cmake \%gcc\\[2pt] target: x86\_64\_v3\\
+      slurm : externe dans /usr\\ recettes : commit d4f7c71}};
+  \draw[fleche] (yaml.east) -- node[above, font=\ttfamily\tiny] {concretize} (6.55,-1.0);
+  \node[anchor=north west, font=\sffamily\footnotesize\bfseries] at (6.6,0.75) {spack.lock};
+  \node[anchor=north west, text=black!60] at (8.1,0.7) {: 49 specs figées (versions, variants, cibles, hash)};
+  \node[racine] (ompi) at (9.6,-0.4) {\textbf{openmpi@5.0.10}\\ {\ttfamily iftmwb3}};
+  \node[racine] (cmake) at (14.3,-0.4) {\textbf{cmake@3.31.11}\\ {\ttfamily nxsxsy2}};
+  \node[spec] (pmix)  at (7.3,-1.95)  {pmix\\ @6.1.0\\ {\ttfamily 2af34qh}};
+  \node[spec] (prrte) at (8.85,-1.95) {prrte\\ @4.1.0\\ {\ttfamily s5tkl45}};
+  \node[spec] (hwloc) at (10.4,-1.95) {hwloc\\ @2.13.0\\ {\ttfamily 3hmup55}};
+  \node[ext]  (slurm) at (11.95,-1.95) {slurm\\ @23.11.4\\ externe};
+  \node[ext]  (gcc)   at (13.5,-1.95) {gcc\\ @13.3.0\\ externe};
+  \node[spec] (curl)  at (15.05,-1.95) {curl\\ @8.20.0\\ {\ttfamily i6kir7u}};
+  \foreach \n in {pmix,prrte,hwloc,slurm} \draw[dep] (ompi.south) -- (\n.north);
+  \draw[dep, dashed] (ompi.south) -- (gcc.north);
+  \draw[dep] (cmake.south) -- (curl.north);
+  \draw[dep, dashed] (cmake.south) -- (gcc.north);
+  \node[text=black!60] at (11.2,-2.95) {+ 41 autres specs (autotools, perl, libevent, openssl, zlib-ng...)};
 \end{tikzpicture}
-\caption{Extrait du graphe enregistré dans \texttt{spack.lock} : les deux specs racines et
-quelques dépendances directes, avec les sept premiers caractères de leur hash. Les externes
-(GCC, Slurm) sont propres à la machine qui a concrétisé.}
+\captionof{figure}{Du manifeste au verrou : extrait du graphe enregistré dans \texttt{spack.lock},
+avec les sept premiers caractères des hash. Flèches pleines : dépendances de compilation et
+d'édition de liens ; tirets : compilateur. Les externes (en gris) ne sont pas reconstruits.}
 \label{fig:lock}
-\end{figure}
+\commentaire
+La concrétisation transforme les deux lignes d'intentions en un graphe de 49 specs, dont 46 à
+construire et trois externes, GCC, la glibc et Slurm (figure~\ref{fig:lock}). Les deux fichiers
+sont commités dans \fic{spack/} ; la vue et l'état local (\fic{spack/.spack-env/}) sont ignorés
+par Git.
+\end{figtexte}
 
-Le tableau~\ref{tab:yaml-lock} et la figure~\ref{fig:lock} résument ce que contient chaque
-fichier ; le listing~\ref{lst:m4-lock} montre la spec concrète d'OpenMPI telle qu'elle est
-enregistrée.
-
-\lstinputlisting[caption={Extrait de \texttt{spack.lock}, mis en forme (\texttt{logs/m4-lock-excerpt.txt}).},
-  label=lst:m4-lock]{logs/m4-lock-excerpt.txt}
+\ifcluster
+Sur \code{hpc-login}, \code{spack -e spack/ concretize} répond qu'il n'y a rien à concrétiser :
+le verrou commité est utilisé tel quel. \code{spack install} construit alors les 46 paquets en
+\spackinstalltime{}, et les hash installés sont identiques à ceux du verrou, produit sur une
+autre machine (listing~\ref{lst:m4-hash}).
+\preuve[label=lst:m4-hash]{logs/cluster/m4-hashes.txt}{Hash du verrou et des paquets installés sur le
+cluster}
+\else
+Le début de la concrétisation (listing~\ref{lst:m4-hash}) montre les specs à construire
+(\code{-}) et les externes (\code{[e]}).
+\preuve[lastline=12, label=lst:m4-hash]{logs/m4-concretize.txt}{Début de la concrétisation, poste
+local}
+\fi
 
 \subsection{Questions de cadrage}
 
-\subsubsection{Syntaxe package@version\%compiler+variant\textasciitilde variant et spec de HDF5}
+\subsubsection{Quelle est la syntaxe d'une spec, et comment s'écrit celle de HDF5 demandée ?}
 
-\code{@} fixe une version ou un intervalle (\code{@1.14.6}, \code{@1.14:}), \code{%} le compilateur,
-\code{+} active un variant booléen et \code{~} le désactive ; \code{clé=valeur} règle un variant à
-valeurs (\code{schedulers=slurm}, \code{target=x86_64_v3}) et \code{^} contraint une dépendance
-(\code{^openmpi@5}). Depuis Spack~1.0, le compilateur est une dépendance comme une autre : la
-sortie affiche \code{%c,cxx=gcc@13.3.0}. La spec demandée s'écrit \code{hdf5+mpi+fortran~cxx %gcc},
-ou, entièrement figée, \code{hdf5@1.14.6+mpi+fortran~cxx %gcc@13.3.0 ^openmpi@5.0.10}. On vérifie
-avec \code{spack spec} qu'elle est bien comprise (listing~\ref{lst:m4-hdf5}). D'après \code{spack info
-hdf5}, \code{cxx} est déjà désactivé par défaut et \code{mpi} activé : les écrire quand même protège
-la spec contre un changement de valeur par défaut dans une future version de la recette. On
-remarque aussi la cible \code{icelake} hors de l'environnement, contre \code{x86_64_v3} dans
-l'environnement.
+Dans \code{package@version%compiler+variant~variant}, \code{@} fixe une version ou un intervalle
+(\code{@1.14.6}, \code{@1.14:}), \code{%} le compilateur, \code{+} active un variant booléen et
+\code{~} le désactive ; \texttt{clé=valeur} règle un variant à valeurs (\code{schedulers=slurm}) et
+\code{^} contraint une dépendance (\code{^openmpi@5}). Depuis Spack~1.0, le compilateur est une
+dépendance comme une autre, ce que montre la notation \code{%c,cxx=gcc@13.3.0} des sorties.
 
-\lstinputlisting[caption={Vérification de la spec par \texttt{spack spec} (\texttt{logs/m4-hdf5.txt}).},
-  label=lst:m4-hdf5]{logs/m4-hdf5.txt}
+La spec de HDF5 demandée s'écrit \code{hdf5+mpi+fortran~cxx %gcc}, et \code{spack spec} confirme
+qu'elle est comprise (listing~\ref{lst:m4-hdf5}). D'après \code{spack info hdf5}, \code{cxx} est
+déjà désactivé et \code{mpi} activé par défaut : les écrire protège tout de même la spec contre un
+changement de valeur par défaut dans une future version de la recette. Entièrement figée, elle
+devient \code{hdf5@1.14.6+mpi+fortran~cxx %gcc@13.3.0 ^openmpi@5.0.10}.
 
-\subsubsection{Pourquoi spack.lock suffit-il à reproduire l'environnement, et pas spack.yaml seul ?}\label{sec:lock}
+\preuve[label=lst:m4-hdf5]{logs/m4-hdf5.txt}{Vérification de la spec par \texttt{spack spec}}
+
+\subsubsection{Pourquoi spack.lock suffit-il à reproduire l'environnement, et pas spack.yaml seul ?}
 
 \fic{spack.yaml} décrit des intentions, et le résultat de leur concrétisation dépend du
-contexte : version de Spack et des recettes (les versions préférées évoluent : aujourd'hui
-OpenMPI 5.0.10 et PMIx 6.1.0, autre chose dans six mois), compilateurs disponibles, paquets
-externes déclarés, micro-architecture de la machine (\code{icelake} ici si l'on ne force pas la
-cible), réglages du solveur. Deux machines, ou deux dates, donnent deux environnements différents.
-\fic{spack.lock} fige au contraire le graphe complet : versions, variants, compilateurs, cible,
-arêtes et hash. \code{spack env create mpiflow spack/spack.lock} suivi de \code{spack install}
-réinstalle exactement ce graphe sans relancer le solveur, et le hash identifie la configuration :
-même hash, même build, même entrée de buildcache.
+contexte : version de Spack et des recettes, dont les versions préférées évoluent ; compilateurs
+et paquets externes disponibles ; micro-architecture de la machine (\code{icelake} chez nous si
+l'on ne fixe pas la cible) ; réglages du solveur. Deux machines, ou deux dates, donnent deux
+environnements différents. \fic{spack.lock} fige au contraire le graphe complet : versions,
+variants, compilateurs, cibles, arêtes et hash. \code{spack install} réinstalle exactement ce
+graphe sans relancer le solveur\ifcluster, comme le montrent les hash identiques obtenus sur le
+cluster\fi, et le hash identifie la configuration : même hash, même build, même entrée de
+buildcache.
 
-Le verrou a toutefois des limites, que l'exercice fait apparaître. Il suppose que la version de
-Spack sait encore relire ses recettes (d'où le tag \code{v1.2.2}) et que les sources restent
-téléchargeables (leurs sommes de contrôle sont vérifiées). Surtout, il contient des éléments
-propres à la machine : l'OS (\code{ubuntu24.04}) et les externes (GCC et Slurm 23.11.4 dans
-\fic{/usr}, figure~\ref{fig:lock}). Notre verrou local démontre le mécanisme, mais le verrou de
-référence doit être produit sur le cluster cible, dont le nœud de connexion et les nœuds de calcul
-partagent la même image, puis commité. On en déduit qu'il est reproductible \enquote{à machine
-identique}, pas sur n'importe quel poste.
+Le verrou a toutefois des limites. Il suppose que la version de Spack et les recettes restent
+disponibles (d'où le tag \code{v1.2.2} et le commit de recettes fixé), et que les sources restent
+téléchargeables. Il contient surtout des éléments propres à la machine, l'OS et les externes :
+Spack fait confiance au GCC 13.3 et au Slurm 23.11.4 déclarés dans \fic{/usr} sans les vérifier.
+Le verrou n'est donc reproductible que sur des machines de même image, ce qui est le cas des
+deux VM, mais pas sur n'importe quel poste.
 
 \subsubsection{Quel est l'intérêt du buildcache pour un pipeline qui installe l'environnement à chaque exécution ?}
 
-Un job CI part d'un environnement vierge : \code{spack install} y recompilerait les 46 paquets de
-notre environnement (OpenMPI, PMIx, PRRTE, hwloc, CMake, autotools...) à chaque pipeline, soit
-des dizaines de minutes à quelques heures sur 2 vCPU, bien au-delà de notre \code{timeout} de
-45\,min. Un buildcache stocke les binaires indexés par leur hash : l'installation devient un
-téléchargement suivi d'une relocalisation, en quelques minutes. Comme les hash du verrou sont
-stables, le cache est atteint exactement, et seuls les nœuds modifiés se recompilent. Le pipeline
-de \code{main} peut publier les nouveaux binaires (\code{spack buildcache push}), signés par la clé GPG
-du projet (variable \code{SPACK_GPG_KEY}, de type \emph{File} et protégée), dans un registre OCI (le
-registre de conteneurs du projet GitLab) ou dans un bucket GCS. Le cluster et le CI installent
-alors les mêmes binaires. Par défaut, Spack ne connaît qu'un miroir de sources
-(\code{spack-public [s]}) : un buildcache se configure explicitement.
+Un job CI part d'un environnement vierge : \code{spack install} y recompilerait les 46 paquets
+(Open MPI, PMIx, PRRTE, CMake, autotools, Perl...) à chaque run, \ifcluster soit
+\spackinstalltime{} sur nos 2 vCPU,\else soit près d'une heure sur 2 vCPU,\fi{} bien au-delà de
+notre \code{timeout}. Un buildcache stocke les binaires indexés par leur hash : l'installation
+devient un téléchargement suivi d'une relocalisation, en quelques minutes. Comme les hash du
+verrou sont stables, le cache est atteint exactement, et seuls les paquets modifiés se
+recompilent. Le pipeline de \code{main} peut publier les nouveaux binaires
+(\code{spack buildcache push}), signés par une clé GPG gardée en secret protégé, dans un registre
+OCI comme \code{ghcr.io} ; le CI et le cluster installent alors les mêmes binaires. Par défaut,
+Spack ne connaît qu'un miroir de sources : le buildcache se configure explicitement.
 
 \subsection{Erreurs rencontrées et résolution}
 
-\begin{table}[ht]
-\centering\small
-\caption{Erreurs de la mission 4.}\label{tab:m4-erreurs}
-\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{4.2cm} L L@{}}
-\toprule
-Symptôme & Cause & Résolution\\ \midrule
-Échec de l'amorçage de \code{clingo} (\code{ghcr.io} injoignable depuis notre réseau) & Spack télécharge son solveur au premier \code{spack spec} & \code{pip install clingo} : Spack utilise un clingo importable par son Python\\
-76 paquets à construire, dont \code{slurm@25-05-1-1}, Python, GLib & \code{schedulers=slurm} ajoute Slurm comme dépendance & Slurm du système déclaré externe et non constructible : 46 paquets\\
-\code{spack external find slurm} : \code{Could not establish a configuration source} & la détection lance \code{salloc --version}, qui échoue sans \fic{slurm.conf} & détection relancée une fois le mini-cluster configuré\\
-Commentaires de \fic{spack.yaml} effacés & \code{spack external find} réécrit le manifeste & manifeste réécrit à la main\\
-Cible \code{icelake} détectée & concrétisation pour le processeur de la machine & \code{packages: all: target: [x86_64_v3]}\\
-\code{spack install} impossible en local & pas d'accès aux miroirs de sources & installation sur le nœud de connexion GCP (\spackinstalltime)\\
-\bottomrule
-\end{tabularx}
-\end{table}
+Au premier \code{spack spec}, Spack n'a pas pu télécharger son solveur \code{clingo}, bloqué par
+le réseau de notre poste ; un \code{pip install clingo} a suffi. La première concrétisation
+comptait ensuite 76 paquets à construire, dont un Slurm complet, car \code{schedulers=slurm} ajoute
+Slurm comme dépendance : déclaré externe et non constructible, celui du système ramène le total
+à 46. La commande \code{spack external find}, utilisée pour le déclarer, a au passage effacé les
+commentaires de \fic{spack.yaml}, réécrit à la main.
+
+Concrétisé sans précaution, l'environnement visait la micro-architecture \code{icelake} de notre
+poste et n'aurait pas tourné sur toutes les VM \code{e2} ; \code{target: [x86_64_v3]} règle la
+question pour tous les paquets.
 
 \subsection{Bilan}
-\begin{description}[font=\normalfont\bfseries, leftmargin=0pt, itemsep=0.2em]
-\item[Ce qui fonctionne :] environnement concrétisé (49 specs) avec une cible portable et Slurm
-externe ; \fic{spack.yaml} et \fic{spack.lock} commités ; spec de HDF5 vérifiée.
-\item[Ce qui ne fonctionne pas :] \ifgcp pas de buildcache : chaque installation repart des
-sources (\spackinstalltime). \else installation, et build du test avec l'OpenMPI de Spack, pas
-encore faits (sur GCP).\fi
-\item[À refaire autrement :] concrétiser directement sur le nœud de connexion, et mettre en place
-le buildcache avant d'appeler \code{spack install} depuis le CI.
-\end{description}
+
+L'environnement est concrétisé avec une cible portable et Slurm externe, versionné dans Git,
+\ifcluster et réinstallé sur le cluster avec des hash identiques au verrou.\else et la spec de
+HDF5 est vérifiée.\fi{} Il n'y a pas encore de buildcache : chaque installation repart des
+sources. Nous mettrions le buildcache en place avant d'appeler \code{spack install} depuis le CI,
+et concrétiserions directement sur l'image des nœuds cibles.
 
 % =============================================================================
 \section{Conclusion et auto-diagnostic}
 % =============================================================================
 
 La séance répond à la question qui la sous-tend : un pipeline HPC ne se contente pas de
-transposer le CI du cloud. Les tests rapides tournent sur des runners partagés, mais ce qu'ils
-valident s'arrête à la logique du code ; l'intégration avec le MPI, le lanceur et le réseau du
-cluster passe par Slurm, avec deux horloges à gérer, des jobs orphelins à annuler et des échecs
-à classer avant de relancer. Spack apporte la pièce manquante, un environnement versionné à côté
-du code, à condition de le concrétiser sur la machine cible.
-
-Plusieurs réponses aux questions de cadrage sont sorties nuancées de l'expérience : oublier
-\code{needs:} ne casse pas un pipeline GitLab, le test MPI des diapositives passe toujours en
-\code{Release}, et un rang qui plante ne fait pas échouer un job Slurm avant le wall-time. Les
-principales difficultés ont été techniques : les deux nœuds émulés sur une même machine ont fait
-planter le transport mémoire partagée d'Open MPI, et la comptabilité asynchrone de Slurm renvoyait
-des informations incomplètes juste après la fin d'un job.
+transposer le CI du cloud. Les runners partagés valident la logique du code ; l'intégration avec
+le MPI, le lanceur et le réseau du cluster passe par Slurm, avec deux horloges à gérer, des jobs
+orphelins à annuler et des échecs à classer avant de relancer ; Spack fournit enfin
+l'environnement versionné qui rend ces exécutions reproductibles.
 
 \subsection{Acquis}
-\begin{itemize}
-\item La sémantique réelle d'un pipeline : stages et DAG (\code{needs}), transmission des
-artefacts, types de pipelines et \code{workflow:rules}, conditions avec \code{rules}.
-\item Les trois protections d'un secret (masqué, protégé, type \emph{File}), ce qu'aucune ne
-garantit seule, et le passage par l'entrée standard.
-\item L'orchestration du CI vers Slurm : \code{timeout} et wall-time, états terminaux, annulation
-des jobs orphelins, distinction entre échec de code et échec d'infrastructure.
-\item Le manifeste et le verrou de Spack, les paquets externes et la cible micro-architecture.
-\item Une méthode : provoquer volontairement chaque échec avant de faire confiance au cas nominal.
-\end{itemize}
+
+Nous maîtrisons désormais la sémantique réelle d'un pipeline : stages et graphe de dépendances,
+transmission des artefacts, événements déclencheurs et conditions. Nous savons protéger un secret
+(masquage, protection par branche ou environnement, passage par l'entrée standard) et ce
+qu'aucun de ces mécanismes ne garantit seul. Nous savons orchestrer un job Slurm depuis le CI en
+gérant le \code{timeout}, les états terminaux, l'annulation et le classement des échecs, et nous
+comprenons ce que décrivent le manifeste et le verrou de Spack. Nous retenons surtout une méthode :
+provoquer volontairement chaque échec avant de faire confiance au cas nominal.
 
 \subsection{Points à retravailler}
-\begin{itemize}
-\item L'enregistrement et la sécurisation d'un runner sur le cluster GCP (utilisateur dédié,
-runner protégé, \fic{/home} partagé).
-\item Le buildcache de Spack en pratique : publication, signature GPG, utilisation depuis le CI.
-\item La génération de modules Lmod depuis Spack (\code{spack module lmod refresh}).
-\item Le runner auto-hébergé de GitHub Actions et les conteneurs Apptainer (cours suivant).
-\end{itemize}
+
+Trois points restent à approfondir : le buildcache de Spack en pratique (publication,
+signature, utilisation depuis le CI), la génération de modules Lmod à partir de Spack pour que
+\fic{job_ci.sh} charge un module plutôt qu'un environnement, et la sécurisation d'un runner
+auto-hébergé dans la durée (runner éphémère, conteneur Apptainer, dépôt de confiance).
 
 \subsection{Utilisation dans un projet d'imagerie médicale}
 
-Prenons un code de segmentation 3D (ITK, MPI ou GPU) appliqué à des volumes IRM ou scanner.
-\begin{itemize}
-\item \textbf{À chaque push :} lint, tests unitaires et un test de bout en bout sur un petit
-fantôme synthétique ou un volume anonymisé de quelques mégaoctets, dans un conteneur.
-\item \textbf{Chaque nuit, via Slurm :} segmentation d'un jeu de référence ; le test compare le
-coefficient de Dice à une segmentation de référence avec une tolérance, plutôt qu'une égalité bit
-à bit, car les réductions MPI et GPU ne sont pas déterministes au bit près.
-\item \textbf{Traçabilité :} chaque résultat archivé avec le SHA du commit, le hash du
-\fic{spack.lock} (ITK, VTK, HDF5, PyTorch), le JobID Slurm et les sommes SHA-256 des volumes
+Prenons un code de segmentation 3D, parallélisé avec MPI ou sur GPU, appliqué à des volumes IRM
+ou scanner. À chaque push, le CI lancerait l'analyse statique, les tests unitaires et un test de
+bout en bout sur un petit fantôme synthétique, dans un conteneur. Chaque nuit, un job Slurm
+segmenterait un jeu de référence ; le test comparerait le coefficient de Dice à une segmentation
+de référence avec une tolérance plutôt qu'une égalité bit à bit, car les réductions parallèles ne
+sont pas déterministes au bit près. Chaque résultat serait archivé avec le commit, le hash du
+\fic{spack.lock} (ITK, VTK, HDF5), l'identifiant du job Slurm et les sommes SHA-256 des volumes
 produits, ce qui permet de rejouer une figure de publication.
-\item \textbf{Données de santé :} aucune donnée de patient dans les artefacts, les logs ou les
-caches du CI (RGPD) ; seulement des données anonymisées ou synthétiques, un accès au stockage par
-variable protégée, et les jobs réels uniquement sur le cluster habilité.
-\end{itemize}
+
+Aucune donnée de patient ne doit en revanche apparaître dans les artefacts, les logs ou les
+caches du CI : seules des données anonymisées ou synthétiques y circulent, l'accès au stockage
+passe par un secret protégé, et les jobs sur données réelles ne tournent que sur le cluster
+habilité, par un runner réservé au dépôt du projet.
 
 % =============================================================================
 \clearpage
@@ -1240,44 +925,17 @@ variable protégée, et les jobs réels uniquement sur le cluster habilité.
 \begin{raggedright}
 \begin{enumerate}[label=\arabic*.]
 \item L. A. Steffenel, \emph{Virtualisation et cloud pour le HPC, Cours 6 : DevOps}, M2 CHPS, Université de Reims Champagne-Ardenne, 2026.
-\item GitLab, \emph{CI/CD YAML syntax reference} (\texttt{needs}, \texttt{retry}, \texttt{after\_script}, \texttt{timeout}), \url{https://docs.gitlab.com/ci/yaml/}.
-\item GitLab, \emph{Job artifacts}, \url{https://docs.gitlab.com/ci/jobs/job_artifacts.html}.
-\item GitLab, \emph{Specify when jobs run with rules}, \url{https://docs.gitlab.com/ci/jobs/job_rules/}.
-\item GitLab, \emph{Deprecated keywords} (\texttt{only}, \texttt{except}), \url{https://docs.gitlab.com/ci/yaml/deprecated_keywords/}.
-\item GitLab, \emph{CI/CD variables}, \url{https://docs.gitlab.com/ci/variables/}.
-\item GitLab, \emph{Configuring runners}, \url{https://docs.gitlab.com/ci/runners/configure_runners/}.
-\item Spack, documentation de la version 1.x, \url{https://spack.readthedocs.io/}.
-\item Google Cloud, annonce des machines E2, \url{https://cloud.google.com/blog/products/compute/google-compute-engine-gets-new-e2-vm-machine-types}.
+\item GitHub, \emph{Workflow syntax for GitHub Actions} (filtres de \texttt{on}, \texttt{needs}, \texttt{timeout-minutes}), \url{https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax}.
+\item GitHub, \emph{Deployments and environments}, \url{https://docs.github.com/en/actions/reference/workflows-and-actions/deployments-and-environments}.
+\item GitHub, \emph{Workflow cancellation reference}, \url{https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-cancellation}.
+\item GitHub, \emph{Self-hosted runners reference}, \url{https://docs.github.com/en/actions/reference/runners/self-hosted-runners}.
 \item GitHub, \texttt{actions/upload-artifact}, \url{https://github.com/actions/upload-artifact}.
-\item gitlab-ci-local, \url{https://github.com/firecow/gitlab-ci-local}.
+\item GitLab, \emph{CI/CD YAML syntax reference} (\texttt{needs}, \texttt{rules}, \texttt{retry}, \texttt{timeout}), \url{https://docs.gitlab.com/ci/yaml/}.
+\item GitLab, \emph{Deprecated keywords} (\texttt{only}, \texttt{except}), \url{https://docs.gitlab.com/ci/yaml/deprecated_keywords/}.
+\item GitLab, \emph{CI/CD variables} (variables masquées et protégées), \url{https://docs.gitlab.com/ci/variables/}.
+\item SchedMD, \emph{Slurm documentation} (\texttt{sbatch}, \texttt{sacct}, \texttt{slurm.conf}), \url{https://slurm.schedmd.com/}.
+\item Spack, documentation de la version 1.x, \url{https://spack.readthedocs.io/}.
 \end{enumerate}
 \end{raggedright}
-
-% =============================================================================
-\clearpage
-\section*{Annexe A : pipeline \emph{.gitlab-ci.yml}}
-% =============================================================================
-
-Ce fichier définit le pipeline complet de la figure~\ref{fig:pipeline} : jobs des missions 1 et
-2 pour les runners partagés, et jobs Slurm de la mission 3 pour le runner du nœud de connexion.
-
-\lstinputlisting[language=yaml, style=numerote]{.gitlab-ci.yml}
-
-\clearpage
-\section*{Annexe B : scripts Slurm \emph{job\_ci.sh} et \emph{submit\_and\_poll.sh}}
-
-Le premier script est le job soumis à Slurm ; le second le soumet, suit son état et rend un
-verdict exploitable par GitLab. Ils s'exécutent depuis la racine du dépôt.
-
-\lstinputlisting[language=bash, style=numerote, title={\small\texttt{slurm/job\_ci.sh}}]{slurm/job_ci.sh}
-\lstinputlisting[language=bash, style=numerote, title={\small\texttt{slurm/submit\_and\_poll.sh}}]{slurm/submit_and_poll.sh}
-
-\clearpage
-\section*{Annexe C : test MPI \emph{test\_mpi.c}}
-
-Le test est compilé par CMake et lancé par CTest (à 1 et 4 rangs), par \code{mpirun} dans le
-conteneur CI et par \code{srun} sur le cluster.
-
-\lstinputlisting[language=C, style=numerote]{tests/test_mpi.c}
 
 \end{document}
