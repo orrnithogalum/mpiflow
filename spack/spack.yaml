@@ -1,27 +1,22 @@
-# Environnement Spack du projet mpiflow (Mission 4) : le MANIFESTE (intentions).
-# Les versions exactes, variants, compilateurs et hash sont figés dans spack.lock.
-#
-#   spack env create mpiflow spack/spack.lock   # reproduire l'environnement
-#   spack -e mpiflow install
+# Environnement Spack du projet mpiflow (mission 4) : le MANIFESTE, c'est-à-dire les
+# intentions. Versions, variants, compilateurs et hash exacts sont figés dans spack.lock.
+#   spack -e spack/ install        installe exactement le contenu de spack.lock
 spack:
   specs:
-  - openmpi@5 schedulers=slurm %gcc   # MPI lançable par srun (Slurm/PMIx), compilé par le GCC système
+  - openmpi@5 schedulers=slurm %gcc   # MPI lançable par srun (PMIx), GCC du système
   - cmake %gcc
-  view: true                          # vue unifiée (bin/, lib/...) dans .spack-env/view
+  view: true                          # vue unifiée dans spack/.spack-env/view
   concretizer:
-    unify: true                       # une seule version de chaque dépendance dans l'environnement
+    unify: true                       # une seule version de chaque dépendance
   packages:
     all:
-      # Cible micro-architecture générique : sans cela Spack optimise pour le CPU
-      # de la machine qui concrétise (ici « icelake »). Les VM e2 de GCP peuvent
-      # tomber sur un processeur Intel ou AMD : le binaire doit tourner sur les deux.
-      target: [x86_64_v3]
-    slurm:
-      # Slurm est fourni par le cluster : on déclare l'installation système comme
-      # « externe » et non constructible. Sans cela, schedulers=slurm fait compiler
-      # par Spack un Slurm complet (76 paquets à construire au lieu de 46).
-      # À adapter sur le cluster GCP : spack external find --not-buildable slurm
+      target: [x86_64_v3]             # portable : les VM e2 sont Intel ou AMD
+    slurm:                            # Slurm du système, jamais recompilé par Spack
       externals:
       - spec: slurm@23.11.4
         prefix: /usr
       buildable: false
+  repos:                              # recettes figées : même graphe partout
+    builtin:
+      git: https://github.com/spack/spack-packages.git
+      commit: d4f7c711a6a42f1c4d551c8fd10fce9a11340a81
