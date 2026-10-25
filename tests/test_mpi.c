@@ -16,6 +16,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 int main(int argc, char **argv)
 {
@@ -26,6 +27,22 @@ int main(int argc, char **argv)
     MPI_Comm_size(MPI_COMM_WORLD, &size);
 
     int errors = 0;
+
+    /* Injection de panne (mission 3), pour observer le pipeline face aux échecs :
+     *   MPIFLOW_CRASH_RANK=r  le rang r plante (abort) avant les collectives ;
+     *   MPIFLOW_HANG_RANK=r   le rang r se bloque : les autres attendent dans
+     *                         MPI_Bcast jusqu'au wall-time du job Slurm. */
+    const char *crash = getenv("MPIFLOW_CRASH_RANK");
+    const char *hang = getenv("MPIFLOW_HANG_RANK");
+    if (size > 1 && crash != NULL && *crash != '\0' && atoi(crash) == rank) {
+        fprintf(stderr, "[rang %d] panne simulée (MPIFLOW_CRASH_RANK)\n", rank);
+        abort();
+    }
+    if (size > 1 && hang != NULL && *hang != '\0' && atoi(hang) == rank) {
+        fprintf(stderr, "[rang %d] blocage simulé (MPIFLOW_HANG_RANK)\n", rank);
+        for (;;)
+            sleep(60);
+    }
 
     /* 1. Broadcast depuis le rang 0 */
     int data = (rank == 0) ? 42 : 0;
