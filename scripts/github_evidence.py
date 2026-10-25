@@ -93,7 +93,8 @@ def find_runs(since=None, **flt):
             "databaseId,status,conclusion,event,headBranch,headSha,url,createdAt"]
     for k, v in flt.items():
         args += [f"--{k}", v]
-    runs = ghj(*args) or []
+    p = run(["gh", *args], check=False)    # dépôt neuf : 404 tant que GitHub n'a pas vu ci.yml
+    runs = json.loads(p.stdout) if p.returncode == 0 and p.stdout.strip() else []
     return [r for r in runs if r["databaseId"] not in seen
             and (since is None or iso(r["createdAt"]).timestamp() >= since.timestamp() - 5)]
 
