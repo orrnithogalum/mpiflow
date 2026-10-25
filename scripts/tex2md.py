@@ -71,14 +71,17 @@ body = re.sub(r"\\ifnum\\pdfstrcmp\{\\ghsecret\}\{depot\}=0\s?(.*?)\\else[ \t]*\
 
 def resolve_ifs(s):
     """Résout les \\ifXXX ... \\else ... \\fi des drapeaux connus (imbrication comprise)."""
-    tok = re.compile(r"(?:\\if(" + "|".join(flags) + r")|\\else|\\fi)(?![A-Za-z])(?:\{\})?[ \t]*\n?")
+    # \ifx\mpilauncher\lanceurmpirun : vrai si logs/romeo/meta.tex retient le repli mpirun
+    conds = dict(flags, **{"x\\mpilauncher\\lanceurmpirun": meta["mpilauncher"] == "mpirun"})
+    tok = re.compile(r"(?:\\if(" + "|".join(re.escape(c) for c in conds) + r")|\\else|\\fi)(?![A-Za-z])"
+                     r"(?:\{\}|[ \t]*\n?)")   # \fi{} garde l'espace qui suit, \fi seul l'avale
     out, stack, pos = [], [], 0
     active = lambda: all(c != e for c, e in stack)
     for m in tok.finditer(s):
         if active():
             out.append(s[pos:m.start()])
         if m.group(1):
-            stack.append([flags[m.group(1)], False])
+            stack.append([conds[m.group(1)], False])
         elif m.group(0).startswith("\\else"):
             stack[-1][1] = True
         else:
