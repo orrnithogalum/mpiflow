@@ -257,7 +257,11 @@ def demo():
     try:
         _demo()
     finally:                                # en cas d'interruption : retour propre sur main
-        run(["git", "checkout", "-q", "-f", "main"], check=False)
+        # pas de checkout -f : il effacerait aussi les preuves fraîches de logs/github/
+        if git("branch", "--show-current", check=False) != "main":
+            run(["git", "checkout", "-q", "--", "tests/test_mpi.c", ".github/workflows/ci.yml"],
+                check=False)
+            run(["git", "checkout", "-q", "main"], check=False)
     regenerate()
 
 
@@ -335,8 +339,9 @@ def _demo():
 
     say("Mission 2 : tag v0.1.0 -> job package")
     git("tag", "-f", "v0.1.0", main_sha)
+    t0 = now()
     push("refs/tags/v0.1.0", force=True)
-    r = wait_run(branch="v0.1.0", event="push")
+    r = wait_run(since=t0, branch="v0.1.0", event="push")   # pas un run d'un tag précédent
     js = jobs_of(r)
     remember("tag", "tag v0.1.0", r, js)
     pkg = next((j for j in js if j["name"] == "package"), None)
