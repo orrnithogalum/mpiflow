@@ -127,6 +127,8 @@ def log_of(job):
     out = []
     for line in p.stdout.replace("﻿", "").splitlines():
         line = re.sub(r"^\d{4}-\d\d-\d\dT[\d:.]+Z ?", "", line)
+        if line.startswith("\x1b[36;1m"):  # texte du script, recopié en cyan sous « Run ... »
+            continue
         line = re.sub(r"\x1b\[[0-9;]*[A-Za-z]", "", line).rstrip()
         if line.startswith("##[group]"):
             line = "> " + line[9:]
