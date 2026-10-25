@@ -12,16 +12,16 @@ Cette séance en pédagogie inversée consistait à le vérifier par l’expéri
 
 Nous avons choisi GitHub Actions, que le sujet autorise. Les jobs des missions 1 et 2 tournent sur les runners hébergés par GitHub (Ubuntu 24.04), dans le conteneur `gcc:13-bookworm` demandé. Le fichier `.gitlab-ci.yml` équivalent est fourni dans le dépôt et a été validé localement avec l’émulateur `gitlab-ci-local` ; les questions de cadrage, écrites pour GitLab, sont traitées pour les deux plateformes.
 
-Faute du cluster Terraform du Cours 5, la mission 3 utilise la solution de repli du sujet : deux petites VM GCP que nous configurons nous-mêmes,  
-emphtype et zone des VM à compléter. Le script `cluster/gcp.sh` crée les VM et une règle de pare-feu limitée au trafic entre elles, et `cluster/node_setup.sh` les configure : sur `hpc-login`, le contrôleur Slurm, la comptabilité (`slurmdbd` et MariaDB, sans lesquels `sacct` ne répond pas), un `slurmd` et un serveur NFS qui partage `/shared` ; sur `hpc-compute`, un `slurmd` et le client NFS. Un runner GitHub auto-hébergé, étiqueté `hpc-login`, tourne sur le nœud de connexion sous un utilisateur dédié. Les VM sont supprimées à la fin (`cluster/gcp.sh destroy`).
+Pour la mission 3, nous utilisons le supercalculateur ROMEO de l’URCA, que le sujet propose comme alternative au cluster GCP (  
+emphsystème, Slurm, partition à compléter). Nous y disposons d’un compte ordinaire : pas de droits d’administration, une file d’attente partagée avec les autres utilisateurs, un projet Slurm auquel les heures sont imputées, et des logiciels fournis par une installation Spack partagée plutôt que par des modules. Le job `test_slurm` y accède par SSH, depuis un runner GitHub auto-hébergé qui tourne sur notre poste (figure 1).
 
 ![image](figures/figure-1.png)
 
-*Figure 1. Pipeline et infrastructure. Les jobs des missions 1 et 2 tournent sur les runners de GitHub ; `test_slurm` (mission 3) est exécuté par le runner auto-hébergé du nœud de connexion, qui interroge GitHub en HTTPS sans ouvrir de port entrant. Sous chaque job figure la condition qui le crée ; les flèches pleines sont les dépendances `needs`.*
+*Figure 1. Pipeline et infrastructure. Les jobs des missions 1 et 2 tournent sur les runners de GitHub ; `test_slurm` (mission 3) est exécuté par le runner auto-hébergé de notre poste, qui interroge GitHub en HTTPS et pilote ROMEO par SSH. Sous chaque job figure la condition qui le crée ; les flèches pleines entre jobs sont les dépendances `needs`.*
 
-La figure 1 montre la séparation des rôles : les runners de GitHub compilent et testent dans un conteneur, le runner `hpc-login` ne fait qu’orchestrer, et le calcul a lieu sur les nœuds alloués par Slurm. Le répertoire `/shared` rend visibles depuis les deux nœuds l’installation de Spack, le binaire compilé par le job et les sorties des jobs Slurm.
+La figure 1 montre la séparation des rôles : les runners de GitHub compilent et testent dans un conteneur ; le runner de notre poste ne fait qu’orchestrer, en copiant le dépôt sur ROMEO puis en y lançant la compilation et la soumission par SSH ; le calcul a lieu sur les nœuds alloués par Slurm. Le répertoire personnel, partagé entre le nœud de connexion et les nœuds de calcul, porte le binaire compilé et les sorties des jobs.
 
-Pour pouvoir casser les choses librement (faire échouer un test, saturer la file, tuer un nœud), chaque mission a d’abord été reproduite sur un poste Linux, avec un mini-cluster Slurm complet, puis rejouée sur GitHub et sur les VM. Les preuves sont collectées par des scripts : `scripts/github_evidence.py` pilote GitHub avec la CLI `gh`, `cluster/evidence.sh` rejoue les scénarios sur le cluster. Chaque commande, sa sortie et son code retour sont écrits dans `logs/`, et les listings de ce document incluent ces fichiers tels quels.
+Pour pouvoir casser les choses librement (faire échouer un test, saturer la file, tuer un nœud), ce qu’un centre de production ne permet pas, chaque mission a d’abord été reproduite sur un poste Linux, avec un mini-cluster Slurm complet dont nous étions administrateurs, puis rejouée sur GitHub et sur ROMEO. Les preuves sont collectées par des scripts : `scripts/github_evidence.py` pilote GitHub avec la CLI `gh`, `romeo/romeo.sh` rejoue les scénarios sur ROMEO par SSH. Chaque commande, sa sortie et son code retour sont écrits dans `logs/`, et les listings de ce document incluent ces fichiers tels quels.
 
 # 3 Mission 1 : un pipeline minimal
 
@@ -31,10 +31,11 @@ Le test `tests/test_mpi.c` vérifie que la valeur diffusée par `MPI_Bcast` arri
 
 Le workflow (listing 1) enchaîne deux jobs dans l’image `gcc:13-bookworm`, où CMake et Open MPI sont installés par `apt`. Le job `build` archive `build/` avec `tar`, car `upload-artifact` ne conserve pas le bit d’exécution, et le publie comme artefact ; le job `test`, relié par `needs: build`, le télécharge, lance `ctest` puis `mpirun -np 4 --allow-run-as-root --oversubscribe`.
 
+      # ===================================================== Mission 1 =============
       build:
         runs-on: ubuntu-24.04
         container: gcc:13-bookworm
-        steps:
+          - run: apt-get update -qq && apt-get install -y -qq cmake libopenmpi-dev openmpi-bin > /dev/null
           - run: |
               cmake -B build -DCMAKE_BUILD_TYPE=Release -DMPIEXEC_PREFLAGS="--allow-run-as-root;--oversubscribe"
               cmake --build build -j"$(nproc)"
@@ -44,16 +45,15 @@ Le workflow (listing 1) enchaîne deux jobs dans l’image `gcc:13-bookworm`, o�
             with:
               name: build
               path: build.tar
-              retention-days: 7
+
       test:
-        needs: build                       # mission 1 : sans needs, test démarre en même temps que build
-        steps:
+        container: gcc:13-bookworm
+          - run: apt-get update -qq && apt-get install -y -qq cmake libopenmpi-dev openmpi-bin > /dev/null
           - uses: actions/download-artifact@v8
             with:
               name: build
           - run: tar -xf build.tar
           - run: cd build && ctest --output-on-failure
-          - run: mpirun --allow-run-as-root --oversubscribe -np 4 build/tests/test_mpi
 
 *Listing 1. Jobs `build` et `test`, extrait du workflow (`.github/workflows/ci.yml`)*
 
@@ -80,9 +80,11 @@ Localement, `mpirun` lancé en root sur 2 cœurs refuse deux fois de démarrer a
 
 *Listing 2. `mpirun` en root sur 2 cœurs, exécution locale (`logs/extraits/m1-mpirun.txt`)*
 
+généré par scripts/figures.py : ne pas modifier à la main
+
 ![image](figures/figure-2.png)
 
-*Figure 2. Jobs exécutés selon l’événement déclencheur, comportement attendu d’après `ci.yml`, en attendant les runs réels (`scripts/github_evidence.py` remplace cette figure). Une ligne par run ; `test_slurm` tourne sur le runner auto-hébergé `hpc-login`, les autres jobs sur les runners de GitHub.*
+*Figure 2. Jobs exécutés selon l’événement déclencheur, comportement attendu d’après `ci.yml`, en attendant les runs réels (`scripts/github_evidence.py` remplace cette figure). Une ligne par run ; `test_slurm` tourne sur le runner auto-hébergé `romeo-ssh`, qui soumet sur ROMEO, les autres jobs sur les runners de GitHub.*
 
 La figure 2 récapitule les runs des missions 1 à 3, une ligne par événement déclencheur. Sur `main`, seuls `build`, `test` et `registry_login` sont créés ; `lint` n’existe que pour une pull request, `package` que pour un tag de version, et `test_slurm` que pour un lancement manuel ou planifié. Les questions qui suivent renvoient aux lignes de cette figure.
 
@@ -96,15 +98,15 @@ Ce comportement est souhaitable parce qu’il fait échouer tôt : tester ou emp
 
 ### 3.2.2 Quelle différence entre mpirun dans le conteneur CI et une exécution sur le cluster ?
 
-Dans le conteneur, le test affiche `4 ranks on 1 host(s)` ; sur le cluster, les mêmes quatre rangs se répartissent sur deux nœuds (section 5.2). La figure 3 représente ce qui sépare les deux exécutions.
+Dans le conteneur, le test affiche `4 ranks on 1 host(s)` ; sur ROMEO, huit rangs se répartissent sur deux nœuds (section 5.2). La figure 3 représente ce qui sépare les deux exécutions.
 
 ![image](figures/figure-3.png)
 
 *Figure 3. Le même test MPI dans le conteneur CI et sur le cluster : placement des rangs, communications et lanceur.*
 
-Dans le conteneur, les quatre rangs partagent une machine de quelques vCPU : il faut `--oversubscribe` pour lancer plus de rangs que de cœurs et `--allow-run-as-root` parce que le conteneur tourne en root. Les communications ne passent que par la mémoire partagée, et `mpirun` crée lui-même les processus, sans allocation. Sur le cluster, `srun` lance les rangs dans une allocation Slurm, sous un utilisateur sans privilèges et avec l’Open MPI de Spack, via PMIx ; les rangs de nœuds différents communiquent par le réseau.
+Dans le conteneur, les quatre rangs partagent une machine de quelques vCPU : il faut `--oversubscribe` pour lancer plus de rangs que de cœurs et `--allow-run-as-root` parce que le conteneur tourne en root. Les communications ne passent que par la mémoire partagée, et `mpirun` crée lui-même les processus, sans allocation. Sur ROMEO, `srun` lance les rangs dans une allocation Slurm, sous notre compte sans privilèges et avec l’Open MPI de l’installation Spack du centre, via PMIx ; les rangs de nœuds différents communiquent par le réseau d’interconnexion.
 
-Les deux exécutions réagissent aussi différemment aux pannes : quand un rang meurt, `mpirun` arrête tout le job, alors que `srun` peut laisser les autres rangs bloqués dans une collective jusqu’au wall-time (mission 3). On en déduit que le CI valide la logique du code sur peu de rangs à chaque push, comme un test unitaire, tandis que seul le cluster valide l’intégration du code, du MPI, du lanceur et du réseau, et produit des temps qui ont un sens. Le binaire du conteneur, lié à l’Open MPI de Debian, n’est d’ailleurs pas réutilisé : le job du cluster recompile.
+Les deux exécutions réagissent aussi différemment aux pannes : quand un rang meurt, `mpirun` arrête tout le job, alors que `srun` peut laisser les autres rangs bloqués dans une collective jusqu’au wall-time (mission 3). On en déduit que le CI valide la logique du code sur peu de rangs à chaque push, comme un test unitaire, tandis que seul le cluster valide l’intégration du code, du MPI, du lanceur et du réseau, et produit des temps qui ont un sens. Le binaire du conteneur, lié à l’Open MPI de Debian, n’est d’ailleurs pas réutilisé : le job de ROMEO recompile.
 
 ### 3.2.3 Pourquoi le test échoue-t-il si l’on oublie needs, alors que le build a réussi ?
 
@@ -152,12 +154,13 @@ Le pipeline `build` puis `test` tourne sur GitHub à chaque push sur `main` et s
 
 Trois jobs s’ajoutent au pipeline (listing 5). Le job `lint` lance `cppcheck` avec `--error-exitcode=1` et n’existe que pour l’événement `pull_request`. Le job `package` ne se déclenche que sur un tag `vX.Y.Z` ; il archive le binaire, le README et un fichier `BUILDINFO.txt` (tag, commit, URL du run), calcule le SHA-256 de l’archive et simule la publication avec `scripts/fake_docker_login.sh`, qui reproduit le contrat de `docker login --password-stdin` sans démon Docker. Le secret `FAKE_REGISTRY_TOKEN`, une fausse valeur, est rangé dans l’environnement `release`, que GitHub n’ouvre qu’aux tags `v*`. Le job `registry_login`, qui ne déclare pas d’environnement, montre ce qu’un job ordinaire voit du secret.
 
+
     on:
       push:
         branches: [main]
         tags: ['v[0-9]+.[0-9]+.[0-9]+']    # vX.Y.Z seulement : v1.2.3-rc1 ne déclenche rien
       pull_request:
-        branches: [main]
+      # ===================================================== Mission 2 : package ===
       package:
         needs: [build, test]
         if: startsWith(github.ref, 'refs/tags/v') || inputs.publier
@@ -165,7 +168,6 @@ Trois jobs s’ajoutent au pipeline (listing 5). Le job `lint` lance `cppcheck` 
         environment: release               # secret protégé : uniquement pour les tags v*
         env:
           TAG: ${{ github.ref_name }}
-          FAKE_REGISTRY_TOKEN: ${{ secrets.FAKE_REGISTRY_TOKEN }}
 
 *Listing 5. Déclencheurs et en-tête du job `package`, extrait du workflow (`.github/workflows/ci.yml`)*
 
@@ -223,7 +225,7 @@ Il faut écrire `rules:`. La documentation de GitLab range `only` et `except` pa
 
 Sur GitLab, la variable n’est pas injectée : le job démarre sans erreur, avec une variable vide. Notre job `registry_login` l’affiche alors (`FAKE_REGISTRY_TOKEN vide`), et `fake_docker_login.sh` refuse un secret vide plutôt que de continuer sans identifiant. GitHub va plus loin avec un secret d’environnement : un job qui ne déclare pas l’environnement ne le reçoit pas, et un job qui le déclare depuis une référence non autorisée est refusé avant de démarrer.
 
-Le risque couvert est l’exfiltration par modification du pipeline. Toute personne qui peut pousser une branche peut aussi y modifier le fichier de pipeline : un `echo` du secret encodé en base64, ou un `curl` vers un serveur extérieur, contourne le masquage, qui ne remplace que la valeur exacte dans le log. La protection réserve le secret aux branches et tags protégés, où l’on ne pousse ou ne fusionne qu’après relecture. Pour la même raison, GitHub ne transmet aucun secret aux pull requests venant de forks, et le runner `hpc-login`, qui exécute du code sur le nœud de connexion, ne doit servir qu’à un dépôt de confiance.
+Le risque couvert est l’exfiltration par modification du pipeline. Toute personne qui peut pousser une branche peut aussi y modifier le fichier de pipeline : un `echo` du secret encodé en base64, ou un `curl` vers un serveur extérieur, contourne le masquage, qui ne remplace que la valeur exacte dans le log. La protection réserve le secret aux branches et tags protégés, où l’on ne pousse ou ne fusionne qu’après relecture. Pour la même raison, GitHub ne transmet aucun secret aux pull requests venant de forks, et notre runner `romeo-ssh`, qui exécute du code sur notre poste et agit sur ROMEO avec notre compte, ne doit servir qu’à un dépôt de confiance.
 
 ### 4.2.3 Pourquoi ne jamais écrire un secret dans le fichier de pipeline, même temporairement ?
 
@@ -251,46 +253,45 @@ Les règles se vérifient pour chaque événement : `lint` sur les pull requests
 
 ## 5.1 Réalisation
 
-Le job Slurm `slurm/job_ci.sh` demande 2 nœuds de 2 tâches, adaptés aux VM `e2-standard-2`, cinq minutes et la partition `debug`, celle que déclare notre `slurm.conf` (vérifiée par `sinfo`). Les VM n’ont pas Lmod : comme le sujet le prévoit, le script initialise directement l’environnement Spack du dépôt, installé dans `/shared`, et n’utilise des modules que s’ils existent. Il lance `srun --mpi=pmix --kill-on-bad-exit=1` avec `EXPECTED_RANKS` égal au nombre de tâches, et se termine par `SUCCESS` ou `FAILED`.
+Le job Slurm `slurm/job_ci.sh` demande, comme le sujet, 2 nœuds et 8 tâches (4 par nœud) pour cinq minutes. La partition `debug` n’existe pas sur ROMEO : la partition, le projet et le type de nœud (`x64cpu`) viennent des variables `SBATCH_PARTITION`, `SBATCH_ACCOUNT` et `SBATCH_CONSTRAINT`, que `sbatch` fait passer avant les lignes `#SBATCH` ; `romeo/romeo.sh check` les choisit d’après `sinfo` et `sacctmgr`. ROMEO n’a pas de modules : les logiciels passent par l’installation Spack partagée, accessible après `romeo_load_x64cpu_env`. Comme le sujet le prévoit en l’absence de Lmod, le script initialise donc lui-même l’environnement (`slurm/env.sh`) : il appelle cette commande puis active l’environnement Spack dédié du dépôt. Il lance ensuite `srun --mpi=pmix --kill-on-bad-exit=1` avec `EXPECTED_RANKS` égal au nombre de tâches, et se termine par `SUCCESS` ou `FAILED`.
 
 Le script `slurm/submit_and_poll.sh` soumet le job par `sbatch --parsable` et garde son identifiant dans `.slurm_jobid`. Il interroge ensuite `sacct -X`, avec un repli sur `squeue` puis `scontrol`, affiche à chaque tour l’état, la raison d’attente et le temps écoulé, archive `sacct` et la sortie du job, et rend 0 pour un succès, 1 pour un échec du job et 75 pour un échec d’infrastructure (`NODE_FAIL`, `BOOT_FAIL`, `PREEMPTED`, job remis en file ou état introuvable).
 
-Le job `test_slurm` (listing 9) s’exécute sur le runner `hpc-login` après `test`, recompile avec le MPI de Spack, puis soumet et suit le job. Nous avons préféré ce runner à une soumission SSH depuis un runner partagé : il n’ouvre aucun port entrant, aucune clé SSH ne figure dans les secrets, et il travaille directement sur `/shared`. Le délai du job (30 min) dépasse celui de l’étape de soumission (25 min), ce qui laisse à l’étape de nettoyage, exécutée même après une annulation (`if: always()`), le temps d’annuler le job Slurm ; les logs sont archivés dans tous les cas, comme avec `artifacts: when: always`.
+Un runner hébergé par GitHub ne peut pas atteindre ROMEO, et le sujet propose deux solutions. Un runner installé sur le nœud de connexion serait un service permanent sur une machine partagée, ce qu’un simple utilisateur ne peut pas imposer au centre. Une soumission SSH depuis un runner hébergé obligerait à confier à GitHub une clé privée donnant accès à notre compte. Nous combinons donc les deux : un runner auto-hébergé tourne sur notre poste, le temps des essais, et atteint ROMEO avec notre accès SSH habituel (`romeo/ci_ssh.sh`). Aucune clé n’est stockée dans GitHub et rien ne reste en fonctionnement sur ROMEO ; en contrepartie, le nightly ne s’exécute que si notre poste est allumé.
+
+Le job `test_slurm` (listing 9) copie le dépôt sur ROMEO, y compile avec le MPI de l’installation partagée, puis soumet et suit le job, le tout par SSH (`slurm/ci_remote.sh`). Le délai du job (30 min) dépasse celui de l’étape de soumission (25 min) : l’étape d’annulation, exécutée même après l’annulation du run (`if: always()`), a ainsi le temps d’appeler `scancel`, et les sorties du job sont rapatriées et archivées dans tous les cas, comme avec `artifacts: when: always`.
 
       test_slurm:
         needs: test                        # pas de cluster si les tests unitaires échouent
-        if: >-
-          vars.HPC_ENABLED == 'true' &&
-          (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.hpc))
-        runs-on: [self-hosted, hpc-login]  # runner installé sur le nœud de connexion
+        runs-on: [self-hosted, romeo-ssh]
         timeout-minutes: 30                # le wall-time Slurm ne compte pas l'attente en file
         env:
-          POLL_INTERVAL: 10
-          MPI_LAUNCHER: ${{ vars.MPI_LAUNCHER || 'srun' }}
-          METHODE: ${{ inputs.methode || 'polling' }}
-          SBATCH_OPTS: ${{ inputs.sbatch_opts }}
+          SBATCH_ACCOUNT: ${{ vars.SBATCH_ACCOUNT }}
+          SBATCH_PARTITION: ${{ vars.SBATCH_PARTITION }}
+          SBATCH_CONSTRAINT: ${{ vars.SBATCH_CONSTRAINT }}
         steps:
           - uses: actions/checkout@v7
-          - name: Environnement Spack (spack.lock) et compilation avec le MPI du cluster
-            run: bash slurm/build_hpc.sh
-          - name: Soumission Slurm et suivi
+          - name: Copie du dépôt sur ROMEO
+            run: bash romeo/ci_ssh.sh sync
+          - name: Compilation, soumission et suivi sur ROMEO
             timeout-minutes: 25            # < timeout du job : l'étape de nettoyage a le temps de tourner
             run: |
-              # polling ; une seule relance, et seulement pour un échec d'infrastructure (code 75)
-              ./slurm/submit_and_poll.sh slurm/job_ci.sh "${opts[@]}" && exit 0 || rc=$?
-              [ "$rc" -eq 75 ] || exit "$rc"
-              echo "::warning::échec d'infrastructure, nouvelle soumission"
-              ./slurm/submit_and_poll.sh slurm/job_ci.sh "${opts[@]}"
+              read -ra opts <<< "$SBATCH_OPTS"
+              bash romeo/ci_ssh.sh run "${opts[@]}"
           - name: Annuler le job Slurm s'il est encore dans la file
             if: always()                   # aussi après annulation ou dépassement du timeout
+            run: bash romeo/ci_ssh.sh cancel
+          - name: Rapatrier les sorties du job
+            if: always()
+            run: bash romeo/ci_ssh.sh fetch
 
 *Listing 9. Job `test_slurm`, extrait du workflow (`.github/workflows/ci.yml`)*
 
-GitHub Actions n’a pas d’équivalent de `retry:`. Sur GitLab, `retry: when: runner_system_failure` relance un job quand c’est le runner qui a défailli (machine perdue, exécuteur en erreur), jamais quand le script a échoué ; nous y ajoutons `exit_codes: 75` et limitons à une relance. Notre étape GitHub reproduit cette logique : elle ne soumet une seconde fois que si le premier essai rend le code 75.
+GitHub Actions n’a pas d’équivalent de `retry:`. Sur GitLab, `retry: when: runner_system_failure` relance un job quand c’est le runner qui a défailli (machine perdue, exécuteur en erreur), jamais quand le script a échoué ; nous y ajoutons `exit_codes: 75` et limitons à une relance. Notre script distant reproduit cette logique : il ne soumet une seconde fois que si le premier essai rend le code 75.
 
 ## 5.2 Preuves d’exécution
 
-Le cas nominal est donné par le listing 10 : quatre rangs sur deux nœuds, `ExitCode 0:0`, ligne `SUCCESS`.
+Le cas nominal est donné par le listing 10 : huit rangs sur deux nœuds, `ExitCode 0:0`, ligne `SUCCESS`.
 
     $ runuser -l etudiant -c 'cd mpiflow && export OMPI_MCA_btl=self,tcp && POLL_INTERVAL=3 ./slurm/submit_and_poll.sh slurm/job_ci.sh'
     Job Slurm 20 soumis (2026-10-24T14:28:22+00:00)
@@ -318,11 +319,15 @@ Le cas nominal est donné par le listing 10 : quatre rangs sur deux nœuds, `Exi
 
 *Listing 10. Soumission et suivi sur le mini-cluster local (`logs/m3-poll-4-success.txt`)*
 
+Pour éprouver le pipeline, nous avons ensuite rejoué sur le mini-cluster localles situations qu’un nightly doit savoir traiter ; la figure 4 les place sur une même échelle de temps.
+
+généré par scripts/figures.py : ne pas modifier à la main
+
 ![image](figures/figure-4.png)
 
 *Figure 4. Chronologie des jobs Slurm des scénarios de la mission 3, sur le mini-cluster de reproduction (`logs/m3-chronologie.txt`), d’après les heures de soumission, de début et de fin enregistrées par `slurmdbd`. Le temps est compté depuis la soumission de chaque job.*
 
-Un rang qui plante donne `FAILED` en quelques secondes, parce que `--kill-on-bad-exit` arrête les autres rangs ; un rang bloqué retient au contraire les autres dans la collective, et seul le wall-time de Slurm y met fin (`TIMEOUT`). Derrière un job qui occupe les quatre CPU, le job du CI attend en `PENDING`, avec la raison `Resources`, puis réussit. Dans le scénario « attente, timeout CI », le suivi est coupé au bout de 40 s alors que le job attend encore : sans le `scancel` de l’étape de nettoyage, il resterait en file. Enfin, quand `slurmd` est tué sur `hpc-compute`, Slurm déclare le nœud hors service, passe le job en `NODE_FAIL` et le remet aussitôt en file (listing 11) ; le script rend 75 et le job remis en file est annulé.
+Un rang qui plante donne `FAILED` en quelques secondes, parce que `--kill-on-bad-exit` arrête les autres rangs ; un rang bloqué retient au contraire les autres dans la collective, et seul le wall-time de Slurm y met fin (`TIMEOUT`). Derrière un job qui occupe tout le cluster, le job du CI attend en `PENDING`, avec la raison `Resources`, puis réussit.Dans le scénario « attente, timeout CI », le suivi est coupé alors que le job attend encore : sans le `scancel` de l’étape de nettoyage, il resterait en file. Enfin, quand le `slurmd` d’un nœud est tué, Slurm passe le job en `NODE_FAIL` et le remet aussitôt en file (listing 11) ; le script rend 75 et le job remis en file est annulé.
 
     $ runuser -l etudiant -c 'cd mpiflow && POLL_INTERVAL=4 ./slurm/submit_and_poll.sh job_long.sh'
     Job Slurm 14 soumis (2026-10-24T13:53:48+00:00)
@@ -372,9 +377,9 @@ Le `timeout` doit donc dépasser le wall-time et une attente raisonnable (5 et 3
 
 ### 5.4.2 Le job Slurm reste PENDING vingt minutes : que se passe-t-il côté CI, et comment le rendre observable ?
 
-Côté CI, le job est « en cours » : le runner exécute la boucle de suivi et reste occupé, si bien que les autres jobs destinés à `hpc-login` attendent, et la suite du run, ainsi qu’une pull request si le job est requis, reste bloquée. Avec une soumission SSH depuis un runner partagé, ces vingt minutes seraient en outre décomptées. Si l’attente dépasse le `timeout`, le job CI échoue et le job Slurm reste en file s’il n’est pas annulé. Avec `sbatch --wait`, le log reste vide pendant toute l’attente : impossible de distinguer une file pleine d’un blocage.
+Côté CI, le job est « en cours » : le runner exécute la boucle de suivi et reste occupé, si bien que les autres jobs destinés au cluster attendent, et la suite du run, ainsi qu’une pull request si le job est requis, reste bloquée. La connexion SSH vers ROMEO reste ouverte pendant toute l’attente ; avec un runner hébergé, ces vingt minutes seraient en outre décomptées. Si l’attente dépasse le `timeout`, le job CI échoue et le job Slurm reste en file s’il n’est pas annulé. Avec `sbatch --wait`, le log reste vide pendant toute l’attente : impossible de distinguer une file pleine d’un blocage.
 
-Pour le rendre observable, notre script affiche à chaque tour l’heure, le temps écoulé, l’état et la raison donnée par Slurm (`Resources`, `Priority`, `BeginTime`, `ReqNodeNotAvail`...), puis l’heure de démarrage estimée par `squeue --start`, qui vaut `N/A` tant que l’ordonnanceur n’a rien calculé (listing 12). On peut aller plus loin avec `sbatch --test-only` avant de soumettre, une partition réservée au CI, ou une alerte au-delà d’un seuil d’attente.
+Pour le rendre observable, notre script affiche à chaque tour l’heure, le temps écoulé, l’état et la raison donnée par Slurm (`Resources`, `Priority`, `Dependency`, `BeginTime`...), puis l’heure de démarrage estimée par `squeue --start`, qui vaut `N/A` tant que l’ordonnanceur n’a rien calculé (listing 12). On peut aller plus loin avec `sbatch --test-only` avant de soumettre, une partition réservée aux tests, ou une alerte au-delà d’un seuil d’attente.
 
     $ runuser -l etudiant -c 'sbatch -J occupe-tout --nodes=2 --ntasks=4 --time=00:02:00 --wrap "sleep 30"' && sleep 1 && squeue
     Submitted batch job 8
@@ -404,32 +409,34 @@ Pour le rendre observable, notre script affiche à chaque tour l’heure, le tem
 
 ### 5.4.3 Le nightly échoue à 2 h du matin : quelles questions se poser avant de relancer ?
 
-Nous nous posons trois questions. La première porte sur le type d’échec : la conclusion du job CI (échec du script, runner perdu, `timeout`) et l’état Slurm (`FAILED` avec un `ExitCode`, `TIMEOUT`, ou `NODE_FAIL`, `BOOT_FAIL`, `PREEMPTED`) le disent, et notre script le résume par son code retour. La deuxième porte sur les logs : la sortie `ci-JOBID.out`, `sacct-JOBID.txt` et le log du job CI sont archivés même en cas d’échec ; s’ils manquent, c’est l’observabilité qu’il faut réparer avant de relancer. La troisième porte sur ce qui a changé depuis le dernier nightly réussi : commits fusionnés, `spack.lock`, maintenance du cluster, quotas ou crédits GCP. Si rien n’a changé dans le dépôt, l’infrastructure est la première suspecte.
+Nous nous posons trois questions. La première porte sur le type d’échec : la conclusion du job CI (échec du script, runner perdu, `timeout`) et l’état Slurm (`FAILED` avec un `ExitCode`, `TIMEOUT`, ou `NODE_FAIL`, `BOOT_FAIL`, `PREEMPTED`) le disent, et notre script le résume par son code retour. La deuxième porte sur les logs : la sortie `ci-JOBID.out`, `sacct-JOBID.txt` et le log du job CI sont archivés même en cas d’échec ; s’ils manquent, c’est l’observabilité qu’il faut réparer avant de relancer. La troisième porte sur ce qui a changé depuis le dernier nightly réussi : commits fusionnés, `spack.lock`, maintenance ou mise à jour du centre, heures du projet épuisées. Si rien n’a changé dans le dépôt, l’infrastructure est la première suspecte.
 
-Un échec de code est déterministe et lié à un commit : test faux, `FAILED` avec un `ExitCode` non nul, plantage ou blocage dans notre code, comme les scénarios « un rang plante » et « un rang bloqué ». Le relancer ne sert à rien et masquerait un test instable : il faut corriger. Un échec d’infrastructure est transitoire et indépendant du code : runner perdu, nœud en panne comme dans le scénario `NODE_FAIL`, VM impossible à créer faute de quota, préemption, NFS indisponible. Une relance automatique, limitée à une, est alors légitime, mais seulement après avoir annulé le job que Slurm a déjà remis en file, sinon le test tourne deux fois.
+Un échec de code est déterministe et lié à un commit : test faux, `FAILED` avec un `ExitCode` non nul, plantage ou blocage dans notre code, comme les scénarios « un rang plante » et « un rang bloqué ». Le relancer ne sert à rien et masquerait un test instable : il faut corriger. Un échec d’infrastructure est transitoire et indépendant du code : runner perdu, poste éteint, connexion SSH coupée, nœud en panne, préemption, maintenance. Une relance automatique, limitée à une, est alors légitime, mais seulement après avoir annulé le job que Slurm a déjà remis en file, sinon le test tourne deux fois.
 
 ## 5.5 Erreurs rencontrées et résolution
 
-Notre première soumission sur deux nœuds a mis plus de cinq minutes à échouer : deux rangs ont planté dans le transport mémoire partagée d’Open MPI et les deux autres sont restés bloqués jusqu’au wall-time. Avec `--kill-on-bad-exit=1`, le même échec est détecté en une seconde. Le plantage venait du mini-cluster local, dont les deux nœuds Slurm étaient la même machine.
+Notre première soumission sur deux nœuds a mis plus de cinq minutes à échouer : deux rangs ont planté dans le transport mémoire partagée d’Open MPI et les autres sont restés bloqués jusqu’au wall-time. Avec `--kill-on-bad-exit=1`, le même échec est détecté en une seconde. Le plantage venait du mini-cluster local, dont les deux nœuds Slurm étaient la même machine.
 
 Sans `--mpi=pmix`, Open MPI refuse de démarrer sous `srun`. Avec d’autres implémentations, les rangs peuvent démarrer en « singletons » de taille 1 et réussir à tort : c’est ce que détecte le contrôle `EXPECTED_RANKS`.
 
 Interrogé dès la fin du job, `sacct` renvoyait encore un nom de job et une liste de nœuds incomplets, car la comptabilité est asynchrone ; le script attend quelques secondes avant d’archiver. Lors d’une autre session, la base de comptabilité s’est arrêtée et le suivi a affiché un état inconnu pendant onze minutes sans conclure (`logs/m3-sacct-down.txt`) : le script interroge désormais le contrôleur avec `scontrol show job` et rend 75 après six tours sans état.
 
-Enfin, avec un intervalle de suivi de 20 s, le script n’a pas vu l’état `NODE_FAIL` : Slurm avait déjà remis le job en file, et le suivi l’aurait attendu jusqu’au `timeout`. Un job `PENDING` dont le compteur `Restarts` est positif est maintenant classé comme un échec d’infrastructure (`logs/m3-requeue.txt`).
+Enfin, avec un intervalle de suivi de 20 s, le script n’a pas vu l’état `NODE_FAIL` : Slurm avait déjà remis le job en file, et le suivi l’aurait attendu jusqu’au `timeout`. Un job dont le compteur `Restarts` est positif est maintenant classé comme un échec d’infrastructure (`logs/m3-requeue.txt`).
 
 ## 5.6 Bilan
 
-La soumission, le suivi, le verdict classé (0, 1 ou 75) et l’annulation des jobs orphelins fonctionnent sur le mini-cluster local,y compris en cas de file saturée, de blocage ou de panne de nœud. Si la base de comptabilité reste arrêtée plus de cinq minutes après la fin du job, le contrôleur l’a oublié et le code retour est perdu. Nous testerions les cas d’échec avant le cas nominal, car chacun a révélé un défaut du script.
+La soumission, le suivi, le verdict classé (0, 1 ou 75) et l’annulation des jobs orphelins fonctionnent sur le mini-cluster local,y compris en cas de blocage, d’attente ou de remise en file. Le CI dépend cependant de notre poste, allumé et connecté, et une vraie panne de nœud n’a pu être observée que sur le mini-cluster local. Nous demanderions au centre un accès prévu pour l’intégration continue (compte de service ou passerelle) plutôt que de la faire reposer sur un poste personnel.
 
 # 6 Mission 4 : Spack, l’environnement comme code
 
 ## 6.1 Réalisation et preuves
 
-Spack est cloné au tag `v1.2.2` plutôt que sur la branche `develop`, car sa version fait partie de ce qu’il faut figer ; sur le cluster, il est installé dans `/shared`. `spack compiler find` détecte le GCC 13.3 du système, utilisé comme paquet externe : Spack ne le recompile pas. L’environnement `spack/` demande `openmpi@5 schedulers=slurm %gcc` et `cmake %gcc` (listing 13). Trois réglages se sont imposés à l’expérience : une cible générique `x86_64_v3`, car `spack arch` donne `icelake` sur notre poste alors que les VM `e2` peuvent recevoir un processeur Intel ou AMD ; le Slurm du système déclaré externe et non constructible, faute de quoi Spack en compile un complet ; et le dépôt de recettes fixé à un commit, puisque les recettes évoluent indépendamment de Spack depuis la version 1.0.
+Nous avons d’abord construit l’environnement sur notre poste. Spack y est cloné au tag `v1.2.2` plutôt que sur la branche `develop`, car sa version fait partie de ce qu’il faut figer, et `spack compiler find` détecte le GCC 13.3 du système, utilisé comme paquet externe : Spack ne le recompile pas. L’environnement `spack/` demande `openmpi@5 schedulers=slurm %gcc` et `cmake %gcc` (listing 13). Trois réglages se sont imposés à l’expérience : une cible générique `x86_64_v3`, car `spack arch` donne `icelake` sur notre poste et des binaires optimisés pour ce processeur ne tourneraient pas sur des machines plus anciennes ; le Slurm du système déclaré externe et non constructible, faute de quoi Spack en compile un complet ; et le dépôt de recettes fixé à un commit, puisque les recettes évoluent indépendamment de Spack depuis la version 1.0.
 
-    # Environnement Spack du projet mpiflow (mission 4) : le MANIFESTE, c'est-à-dire les
-    # intentions. Versions, variants, compilateurs et hash exacts sont figés dans spack.lock.
+    # Environnement Spack du projet mpiflow sur un poste Linux (mission 4) : le MANIFESTE,
+    # c'est-à-dire les intentions. Versions, variants, compilateurs et hash exacts sont figés
+    # dans spack.lock.
+    # Sur ROMEO, voir spack/romeo/ (installation partagée du centre).
     #   spack -e spack/ install        installe exactement le contenu de spack.lock
     spack:
       specs:
@@ -440,7 +447,7 @@ Spack est cloné au tag `v1.2.2` plutôt que sur la branche `develop`, car sa ve
         unify: true                       # une seule version de chaque dépendance
       packages:
         all:
-          target: [x86_64_v3]             # portable : les VM e2 sont Intel ou AMD
+          target: [x86_64_v3]             # portable : pas d'optimisation pour ce seul processeur
         slurm:                            # Slurm du système, jamais recompilé par Spack
           externals:
           - spec: slurm@23.11.4
@@ -459,22 +466,7 @@ Spack est cloné au tag `v1.2.2` plutôt que sur la branche `develop`, car sa ve
 
 La concrétisation transforme les deux lignes d’intentions en un graphe de 49 specs, dont 46 à construire et trois externes, GCC, la glibc et Slurm (figure 5). Les deux fichiers sont commités dans `spack/` ; la vue et l’état local (`spack/.spack-env/`) sont ignorés par Git.
 
-Le début de la concrétisation (listing 14) montre les specs à construire (`-`) et les externes (`[e]`).
-
-    $ spack -e . concretize --force   # (sortie tronquée à 105 colonnes)
-    ==> Concretized 2 specs:
-     -   nxsxsy2  cmake@3.31.11~doc+ncurses+ownlibs~qtgui build_type=Release target=x86_64_v3 %c,cxx=gcc@13.3
-     -   5ras4ko      ^compiler-wrapper@1.1.0 target=x86_64_v3
-     -   i6kir7u      ^curl@8.20.0~gssapi~ldap~libidn2~librtmp~libssh~libssh2+nghttp2 libs:=shared,static tls
-     -   6diukzt          ^nghttp2@1.67.1 target=x86_64_v3 %c,cxx=gcc@13.3.0
-     -   ehec7mr              ^diffutils@3.12 target=x86_64_v3 %c=gcc@13.3.0
-     -   x4rtydo          ^openssl@3.6.1~docs+shared certs=mozilla target=x86_64_v3 %c,cxx=gcc@13.3.0
-     -   sghkyxj              ^ca-certificates-mozilla@2026-03-19 target=x86_64_v3
-    [e]  zpevy7h      ^gcc@13.3.0+binutils+bootstrap~graphite+libsanitizer~mold~nvptx~piclibs~profiled~strip 
-     -   52xg2sk      ^gcc-runtime@13.3.0 target=x86_64_v3
-    [e]  thy5vqo      ^glibc@2.39 target=x86_64
-
-*Listing 14. Début de la concrétisation, poste local (`logs/m4-concretize.txt`)*
+Sur ROMEO, une installation Spack partagée existe déjà, et le sujet demande d’y travailler dans un environnement dédié. Le nôtre, `spack/romeo`, demande seulement `openmpi` et `cmake`, sans version ni compilateur imposés, et active la réutilisation des paquets déjà installés (`reuse: true`) : la concrétisation choisit alors les versions compilées par le centre. Son verrou est produit sur ROMEO par `romeo/evidence.sh`, puis commité à côté du premier.
 
 ## 6.2 Questions de cadrage
 
@@ -482,7 +474,7 @@ Le début de la concrétisation (listing 14) montre les specs à construire (`-`
 
 Dans `package@version%compiler+variant~variant`, `@` fixe une version ou un intervalle (`@1.14.6`, `@1.14:`), `%` le compilateur, `+` active un variant booléen et `~` le désactive ; `clé=valeur` règle un variant à valeurs (`schedulers=slurm`) et `^` contraint une dépendance (`^openmpi@5`). Depuis Spack 1.0, le compilateur est une dépendance comme une autre, ce que montre la notation `%c,cxx=gcc@13.3.0` des sorties.
 
-La spec de HDF5 demandée s’écrit `hdf5+mpi+fortran~cxx %gcc`, et `spack spec` confirme qu’elle est comprise (listing 15). D’après `spack info hdf5`, `cxx` est déjà désactivé et `mpi` activé par défaut : les écrire protège tout de même la spec contre un changement de valeur par défaut dans une future version de la recette. Entièrement figée, elle devient `hdf5@1.14.6+mpi+fortran~cxx %gcc@13.3.0 ^openmpi@5.0.10`.
+La spec de HDF5 demandée s’écrit `hdf5+mpi+fortran~cxx %gcc`, et `spack spec` confirme qu’elle est comprise (listing 14). D’après `spack info hdf5`, `cxx` est déjà désactivé et `mpi` activé par défaut : les écrire protège tout de même la spec contre un changement de valeur par défaut dans une future version de la recette. Entièrement figée, elle devient `hdf5@1.14.6+mpi+fortran~cxx %gcc@13.3.0 ^openmpi@5.0.10`.
 
     $ spack spec hdf5+mpi+fortran~cxx %gcc@13.3.0   # (extrait)
      -   hdf5@1.14.6~cxx+fortran~hl~ipo~java~map+mpi+shared~subfiling~szip~threadsafe+tools api=default build_type=R
@@ -491,27 +483,27 @@ La spec de HDF5 demandée s’écrit `hdf5+mpi+fortran~cxx %gcc`, et `spack spec
     $ spack arch
     linux-ubuntu24.04-icelake
 
-*Listing 15. Vérification de la spec par `spack spec` (`logs/m4-hdf5.txt`)*
+*Listing 14. Vérification de la spec par `spack spec` (`logs/m4-hdf5.txt`)*
 
 ### 6.2.2 Pourquoi spack.lock suffit-il à reproduire l’environnement, et pas spack.yaml seul ?
 
 `spack.yaml` décrit des intentions, et le résultat de leur concrétisation dépend du contexte : version de Spack et des recettes, dont les versions préférées évoluent ; compilateurs et paquets externes disponibles ; micro-architecture de la machine (`icelake` chez nous si l’on ne fixe pas la cible) ; réglages du solveur. Deux machines, ou deux dates, donnent deux environnements différents. `spack.lock` fige au contraire le graphe complet : versions, variants, compilateurs, cibles, arêtes et hash. `spack install` réinstalle exactement ce graphe sans relancer le solveur, et le hash identifie la configuration : même hash, même build, même entrée de buildcache.
 
-Le verrou a toutefois des limites. Il suppose que la version de Spack et les recettes restent disponibles (d’où le tag `v1.2.2` et le commit de recettes fixé), et que les sources restent téléchargeables. Il contient surtout des éléments propres à la machine, l’OS et les externes : Spack fait confiance au GCC 13.3 et au Slurm 23.11.4 déclarés dans `/usr` sans les vérifier. Le verrou n’est donc reproductible que sur des machines de même image, ce qui est le cas des deux VM, mais pas sur n’importe quel poste.
+Le verrou a toutefois des limites. Il suppose que la version de Spack et les recettes restent disponibles (d’où le tag `v1.2.2` et le commit de recettes fixé), et que les sources restent téléchargeables. Il contient surtout des éléments propres à la machine, l’OS et les externes : Spack fait confiance au GCC 13.3 et au Slurm 23.11.4 déclarés dans `/usr` sans les vérifier. Le verrou n’est donc reproductible que sur des machines de même image : celui de notre poste, produit sous Ubuntu 24.04 avec GCC 13.3, n’a pas de sens sur ROMEO, qui fonctionne sous RHEL 9 avec d’autres compilateurs et une autre micro-architecture ; d’où un second verrou, produit sur ROMEO.
 
 ### 6.2.3 Quel est l’intérêt du buildcache pour un pipeline qui installe l’environnement à chaque exécution ?
 
-Un job CI part d’un environnement vierge : `spack install` y recompilerait les 46 paquets (Open MPI, PMIx, PRRTE, CMake, autotools, Perl...) à chaque run, soit près d’une heure sur 2 vCPU,bien au-delà de notre `timeout`. Un buildcache stocke les binaires indexés par leur hash : l’installation devient un téléchargement suivi d’une relocalisation, en quelques minutes. Comme les hash du verrou sont stables, le cache est atteint exactement, et seuls les paquets modifiés se recompilent. Le pipeline de `main` peut publier les nouveaux binaires (`spack buildcache push`), signés par une clé GPG gardée en secret protégé, dans un registre OCI comme `ghcr.io` ; le CI et le cluster installent alors les mêmes binaires. Par défaut, Spack ne connaît qu’un miroir de sources : le buildcache se configure explicitement.
+Un job CI part d’un environnement vierge : `spack install` y recompilerait les 46 paquets (Open MPI, PMIx, PRRTE, CMake, autotools, Perl...) à chaque run, soit des dizaines de minutes, bien au-delà de notre `timeout`. Un buildcache stocke les binaires indexés par leur hash : l’installation devient un téléchargement suivi d’une relocalisation, en quelques minutes. Comme les hash du verrou sont stables, le cache est atteint exactement, et seuls les paquets modifiés se recompilent. Le pipeline de `main` peut publier les nouveaux binaires (`spack buildcache push`), signés par une clé GPG gardée en secret protégé, dans un registre OCI comme `ghcr.io` ; le CI et le cluster installent alors les mêmes binaires. L’installation partagée de ROMEO joue ce rôle pour les utilisateurs du centre : notre environnement dédié y réutilise les paquets déjà compilés au lieu de les reconstruire.Par défaut, Spack ne connaît qu’un miroir de sources : un buildcache se configure explicitement.
 
 ## 6.3 Erreurs rencontrées et résolution
 
 Au premier `spack spec`, Spack n’a pas pu télécharger son solveur `clingo`, bloqué par le réseau de notre poste ; un `pip install clingo` a suffi. La première concrétisation comptait ensuite 76 paquets à construire, dont un Slurm complet, car `schedulers=slurm` ajoute Slurm comme dépendance : déclaré externe et non constructible, celui du système ramène le total à 46. La commande `spack external find`, utilisée pour le déclarer, a au passage effacé les commentaires de `spack.yaml`, réécrit à la main.
 
-Concrétisé sans précaution, l’environnement visait la micro-architecture `icelake` de notre poste et n’aurait pas tourné sur toutes les VM `e2` ; `target: [x86_64_v3]` règle la question pour tous les paquets.
+Concrétisé sans précaution, l’environnement visait la micro-architecture `icelake` de notre poste et n’aurait pas tourné sur des processeurs plus anciens ; `target: [x86_64_v3]` règle la question pour tous les paquets. Enfin, l’installation n’a pas pu être lancée sur notre poste, dont le réseau bloque les miroirs de sources : c’est sur ROMEO que l’environnement est installé.
 
 ## 6.4 Bilan
 
-L’environnement est concrétisé avec une cible portable et Slurm externe, versionné dans Git, et la spec de HDF5 est vérifiée.Il n’y a pas encore de buildcache : chaque installation repart des sources. Nous mettrions le buildcache en place avant d’appeler `spack install` depuis le CI, et concrétiserions directement sur l’image des nœuds cibles.
+L’environnement est concrétisé sur notre poste, avec une cible portable et Slurm externe, et sur ROMEO, où il réutilise l’installation partagée; les deux verrous sont versionnés. Le premier n’a pas pu être installé faute d’accès aux sources, et aucun buildcache n’est en place pour le CI. Nous concrétiserions directement sur la machine cible et mettrions un buildcache en place avant d’appeler `spack install` depuis le CI.
 
 # 7 Conclusion et auto-diagnostic
 
@@ -523,7 +515,7 @@ Nous maîtrisons désormais la sémantique réelle d’un pipeline : stages et g
 
 ## 7.2 Points à retravailler
 
-Trois points restent à approfondir : le buildcache de Spack en pratique (publication, signature, utilisation depuis le CI), la génération de modules Lmod à partir de Spack pour que `job_ci.sh` charge un module plutôt qu’un environnement, et la sécurisation d’un runner auto-hébergé dans la durée (runner éphémère, conteneur Apptainer, dépôt de confiance).
+Trois points restent à approfondir : le buildcache de Spack en pratique (publication, signature, utilisation depuis le CI), la mesure de performances dans le pipeline, avec un passage à l’échelle sur davantage de nœuds de ROMEO, et un accès pérenne du CI à ROMEO, qui ne dépende pas de notre poste (compte de service ou passerelle fournie par le centre).
 
 ## 7.3 Utilisation dans un projet d’imagerie médicale
 
@@ -553,8 +545,10 @@ Aucune donnée de patient ne doit en revanche apparaître dans les artefacts, le
 
 9.  GitLab, *CI/CD variables* (variables masquées et protégées), <https://docs.gitlab.com/ci/variables/>.
 
-10. SchedMD, *Slurm documentation* (`sbatch`, `sacct`, `slurm.conf`), <https://slurm.schedmd.com/>.
+10. Centre de calcul régional ROMEO, *Documentation ROMEO 2025* (charger ses logiciels, installer un logiciel avec Spack), <https://romeo.univ-reims.fr/documentation/ressources/romeo_2025/>.
 
-11. Spack, documentation de la version 1.x, <https://spack.readthedocs.io/>.
+11. SchedMD, *Slurm documentation* (`sbatch`, `sacct`, `slurm.conf`), <https://slurm.schedmd.com/>.
+
+12. Spack, documentation de la version 1.x, <https://spack.readthedocs.io/>.
 
 </div>

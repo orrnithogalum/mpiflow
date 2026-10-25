@@ -4,18 +4,20 @@
 %
 %  Compilation : latexmk -g (pdfLaTeX). Les extraits de code et de logs sont lus
 %  dans le dépôt et dans logs/ ; les preuves GitHub (logs/github/) et cluster
-%  (logs/cluster/) remplacent automatiquement les preuves locales dès qu'elles existent.
+%  (logs/romeo/) remplacent automatiquement les preuves locales dès qu'elles existent.
 % =============================================================================
 \documentclass[11pt,a4paper]{article}
 
 % ------------------------------------------------------------- à renseigner
 \newcommand{\etudiants}{Sylvain ROWE}
 \newcommand{\depot}{\afaire{URL du dépôt}}
-\newcommand{\clusterinfo}{\afaire{type et zone des VM}}
+\newcommand{\romeoinfo}{\afaire{système, Slurm, partition}}
 \newcommand{\spackinstalltime}{\afaire{durée}}
+\newcommand{\spackreuse}{?}
+\newcommand{\spackbuild}{?}
 \newcommand{\mpilauncher}{srun}
 \newcommand{\ghsecret}{environnement}
-\newif\ifgithub \newif\ifghdemo \newif\ifghhpc \newif\ifcluster \newif\ifbrouillon
+\newif\ifgithub \newif\ifghdemo \newif\ifghhpc \newif\ifromeo \newif\ifbrouillon
 % -----------------------------------------------------------------------------
 
 \usepackage[T1]{fontenc}
@@ -34,6 +36,10 @@
 \usepackage{enumitem}
 \usepackage{listings}
 \usepackage{caption}
+\usepackage[section]{placeins}
+\renewcommand{\topfraction}{0.85}\renewcommand{\bottomfraction}{0.6}
+\renewcommand{\textfraction}{0.1}\renewcommand{\floatpagefraction}{0.8}
+\setcounter{topnumber}{3}\setcounter{totalnumber}{4}
 \usepackage{tikz}
 \usetikzlibrary{arrows.meta,calc,positioning}
 \usepackage[obeyspaces,spaces]{url}
@@ -76,9 +82,9 @@
     unify,packages,all,target,externals,spec,prefix,buildable,repos,builtin,git,commit}}
 \renewcommand{\lstlistingname}{Listing}
 
-% Un listing = un bloc insécable : \preuve[options listings, label=...]{fichier}{légende}
-\newcommand{\preuve}[3][]{\par\medskip\noindent\begin{minipage}{\linewidth}%
-  \lstinputlisting[caption={#3 (\texttt{\detokenize{#2}})},#1]{#2}\end{minipage}\par\medskip}
+% Un listing = un flottant insécable, placé en haut ou en bas de page dans sa section :
+% \preuve[options listings, label=...]{fichier}{légende}
+\newcommand{\preuve}[3][]{\lstinputlisting[float=!tbp, caption={#3 (\texttt{\detokenize{#2}})},#1]{#2}}
 % Preuve GitHub ou cluster si elle existe, sinon preuve locale :
 % \preuveou[options]{fichier}{légende}[options locales]{fichier local}{légende locale}
 \NewDocumentCommand{\preuveou}{O{} m m O{} m m}{\IfFileExists{#2}{\preuve[#1]{#2}{#3}}{\preuve[#4]{#5}{#6}}}
@@ -112,8 +118,8 @@
 \IfFileExists{logs/github/meta.tex}{\githubtrue\input{logs/github/meta.tex}}{}
 \IfFileExists{logs/github/m2-pr.txt}{\ghdemotrue}{}
 \IfFileExists{logs/github/m3-ci-polling.txt}{\ghhpctrue}{}
-\IfFileExists{logs/cluster/meta.tex}{\clustertrue\input{logs/cluster/meta.tex}}{}
-\brouillontrue \ifghdemo\ifghhpc\ifcluster\brouillonfalse\fi\fi\fi
+\IfFileExists{logs/romeo/meta.tex}{\romeotrue\input{logs/romeo/meta.tex}}{}
+\brouillontrue \ifghdemo\ifghhpc\ifromeo\brouillonfalse\fi\fi\fi
 
 % =============================================================================
 \begin{document}
@@ -157,9 +163,10 @@ comportement attendu. Les commandes se lancent à la racine du dépôt (voir \fi
 \begin{enumerate}
 \item \code{python3 scripts/github_evidence.py init}, puis \code{demo}
 \ifghdemo\enskip\textcolor{OliveGreen}{fait}\fi
-\item \code{bash cluster/gcp.sh create}, \code{setup}, puis \code{evidence}
-\ifcluster\enskip\textcolor{OliveGreen}{fait}\fi
-\item \code{python3 scripts/github_evidence.py hpc}, puis \code{bash cluster/gcp.sh destroy}
+\item \code{bash romeo/romeo.sh check}, puis \code{evidence}
+\ifromeo\enskip\textcolor{OliveGreen}{fait}\fi
+\item \code{bash romeo/runner.sh start} dans un autre terminal,
+\code{python3 scripts/github_evidence.py hpc}, puis \code{bash romeo/runner.sh remove}
 \ifghhpc\enskip\textcolor{OliveGreen}{fait}\fi
 \item \code{bash scripts/finalise.sh} : PDF, Markdown, commit, tag \code{seance-inversee}, push
 \end{enumerate}
@@ -195,76 +202,79 @@ demandé. Le fichier \fic{.gitlab-ci.yml} équivalent est fourni dans le dépôt
 localement avec l'émulateur \code{gitlab-ci-local} ; les questions de cadrage, écrites pour
 GitLab, sont traitées pour les deux plateformes.
 
-Faute du cluster Terraform du Cours~5, la mission~3 utilise la solution de repli du sujet : deux
-petites VM GCP que nous configurons nous-mêmes, \clusterinfo. Le script \fic{cluster/gcp.sh}
-crée les VM et une règle de pare-feu limitée au trafic entre elles, et
-\fic{cluster/node_setup.sh} les configure : sur \code{hpc-login}, le contrôleur Slurm, la
-comptabilité (\code{slurmdbd} et MariaDB, sans lesquels \code{sacct} ne répond pas), un
-\code{slurmd} et un serveur NFS qui partage \fic{/shared} ; sur \code{hpc-compute}, un
-\code{slurmd} et le client NFS. Un runner GitHub auto-hébergé, étiqueté \code{hpc-login}, tourne
-sur le nœud de connexion sous un utilisateur dédié. Les VM sont supprimées à la fin
-(\code{cluster/gcp.sh destroy}).
+Pour la mission~3, nous utilisons le supercalculateur ROMEO de l'URCA, que le sujet propose
+comme alternative au cluster GCP (\romeoinfo). Nous y disposons d'un compte ordinaire : pas de
+droits d'administration, une file d'attente partagée avec les autres utilisateurs, un projet
+Slurm auquel les heures sont imputées, et des logiciels fournis par une installation Spack
+partagée plutôt que par des modules. Le job \code{test_slurm} y accède par SSH, depuis un runner
+GitHub auto-hébergé qui tourne sur notre poste (figure~\ref{fig:infra}).
 
 \begin{figtexte}
 \begin{tikzpicture}[font=\sffamily\scriptsize]
   % --- GitHub
-  \draw[black!40, rounded corners=4pt, fill=black!2] (0,0.5) rectangle (7.35,-4.35);
+  \draw[black!40, rounded corners=4pt, fill=black!2] (0,0.5) rectangle (7.05,-4.35);
   \node[anchor=north west, font=\sffamily\footnotesize\bfseries] at (0.1,0.45) {GitHub Actions};
   \node[anchor=north west, text=black!60] at (0.1,0.05) {runners hébergés, conteneur \texttt{gcc:13-bookworm}};
-  \node[job=oiPourpre] (lint) at (1.25,-1.0) {lint};
+  \node[job=oiPourpre] (lint) at (1.2,-1.0) {lint};
   \node[quand, below=1pt of lint] {pull requests};
-  \node[job=oiCiel] (reg) at (6.0,-1.0) {registry\_login};
+  \node[job=oiCiel] (reg) at (5.75,-1.0) {registry\_login};
   \node[quand, below=1pt of reg] {tous les runs};
-  \node[job=oiCiel] (build) at (1.25,-2.4) {build};
+  \node[job=oiCiel] (build) at (1.2,-2.4) {build};
   \node[quand, below=1pt of build] {tous les runs};
   \node[job=oiCiel] (test) at (3.85,-2.4) {test};
   \node[quand, below=1pt of test] {tous les runs};
-  \node[job=oiOrange] (pkg) at (6.0,-3.55) {package};
-  \node[quand, below=1pt of pkg] {tags vX.Y.Z, environnement release};
+  \node[job=oiOrange] (pkg) at (5.75,-3.4) {package};
+  \node[quand, below=1pt of pkg, align=center] {tags vX.Y.Z\\ environnement release};
   \draw[fleche] (build) -- node[above, quand] {artefact} (test);
   \draw[fleche] (test.south) |- (pkg.west);
   \draw[fleche, black!45] ($(build.south)+(-0.8,0)$) |- ($(pkg.west)+(0,-0.12)$);
-  % --- GCP
-  \draw[black!40, rounded corners=4pt, fill=black!2] (8.1,0.5) rectangle (16.0,-4.35);
-  \node[anchor=north west, font=\sffamily\footnotesize\bfseries] at (8.2,0.45) {Google Cloud};
-  \node[anchor=north west, text=black!60] at (8.2,0.05) {deux VM \texttt{e2-standard-2}, Ubuntu 24.04};
-  \draw[vm, fill=oiVert!8] (8.3,-0.5) rectangle (11.75,-3.15);
-  \node[anchor=north west, font=\sffamily\scriptsize\bfseries] at (8.35,-0.55) {hpc-login};
-  \node[anchor=north west, align=left, text=black!75] at (8.35,-0.9)
-    {\texttt{slurmctld}, \texttt{slurmdbd}\\ MariaDB, serveur NFS\\ \texttt{slurmd} : rangs 0 et 1};
-  \node[job=oiVert] (slurmjob) at (10.0,-2.4) {test\_slurm};
-  \node[quand, below=1pt of slurmjob] {runner \texttt{hpc-login}, utilisateur \texttt{ci}};
-  \draw[vm, fill=oiVert!8] (12.75,-0.5) rectangle (15.8,-3.15);
-  \node[anchor=north west, font=\sffamily\scriptsize\bfseries] at (12.8,-0.55) {hpc-compute};
-  \node[anchor=north west, align=left, text=black!75] at (12.8,-0.9)
-    {\texttt{slurmd} : rangs 2 et 3\\ client NFS};
-  \draw[{Stealth[length=2mm]}-{Stealth[length=2mm]}, thick, oiOrange] (11.75,-1.6) --
-    node[above, text=black, align=center, font=\sffamily\tiny] {\texttt{srun}\\MPI} (12.75,-1.6);
-  \draw[fill=black!8, draw=black!45, rounded corners=2pt] (8.3,-3.5) rectangle (15.8,-4.1);
-  \node at (12.05,-3.8) {\texttt{/shared} (NFS) : Spack, dépôt, binaire, sorties \texttt{ci-*.out}};
-  \draw[black!45, thick] (10.0,-3.15) -- (10.0,-3.5);
-  \draw[black!45, thick] (14.3,-3.15) -- (14.3,-3.5);
-  % --- lien GitHub -> runner
-  \draw[fleche, dashed] (test.east) -- node[above, quand, pos=0.62, align=center] {needs: test\\ lancement manuel ou nuit}
-    node[below, quand, pos=0.62] {HTTPS sortant} (slurmjob.west);
+  % --- poste de l'étudiant
+  \draw[black!40, rounded corners=4pt, fill=oiVert!6] (7.35,0.5) rectangle (9.75,-4.35);
+  \node[anchor=north west, font=\sffamily\footnotesize\bfseries, align=left] at (7.4,0.45) {Notre poste};
+  \node[anchor=north west, text=black!60, align=left] at (7.4,0.05) {runner\\ \texttt{romeo-ssh}};
+  \node[job=oiVert] (slurmjob) at (8.55,-2.4) {test\_slurm};
+  \node[quand, below=1pt of slurmjob, align=center] {lancement manuel\\ ou nuit};
+  % --- ROMEO
+  \draw[black!40, rounded corners=4pt, fill=black!2] (10.05,0.5) rectangle (16.0,-4.35);
+  \node[anchor=north west, font=\sffamily\footnotesize\bfseries] at (10.15,0.45) {ROMEO (URCA)};
+  \node[anchor=north west, text=black!60] at (10.15,0.05) {compte utilisateur, Slurm, Spack partagé};
+  \draw[vm, fill=oiVert!8] (10.25,-0.75) rectangle (13.1,-3.0);
+  \node[anchor=north west, font=\sffamily\scriptsize\bfseries] at (10.3,-0.8) {nœud de connexion};
+  \node[anchor=north west, align=left, text=black!75] at (10.3,-1.2)
+    {copie du dépôt\\ Spack partagé, CMake\\ \texttt{sbatch}, \texttt{sacct}\\ \texttt{scancel} si annulation};
+  \draw[vm, fill=oiVert!8] (13.55,-0.75) rectangle (15.8,-3.0);
+  \node[anchor=north west, font=\sffamily\scriptsize\bfseries] at (13.6,-0.8) {nœuds de calcul};
+  \node[anchor=north west, align=left, text=black!75] at (13.6,-1.2)
+    {2 nœuds, 8 rangs\\ type \texttt{x64cpu}\\ lancés par \texttt{srun}};
+  \draw[{Stealth[length=2mm]}-{Stealth[length=2mm]}, thick, oiOrange] (13.1,-1.9) -- (13.55,-1.9);
+  \draw[fill=black!8, draw=black!45, rounded corners=2pt] (10.25,-3.35) rectangle (15.8,-3.95);
+  \node at (13.02,-3.65) {répertoire personnel, partagé entre les nœuds};
+  \draw[black!45, thick] (11.67,-3.0) -- (11.67,-3.35);
+  \draw[black!45, thick] (14.67,-3.0) -- (14.67,-3.35);
+  % --- liens
+  \draw[fleche, dashed] (test.east) -- node[above, quand, pos=0.45] {needs: test}
+    node[below, quand, pos=0.45] {HTTPS sortant} (slurmjob.west);
+  \draw[fleche] (slurmjob.east) -- node[above, quand] {SSH} (10.25,-2.4);
 \end{tikzpicture}
 \captionof{figure}{Pipeline et infrastructure. Les jobs des missions 1 et 2 tournent sur les
-runners de GitHub ; \texttt{test\_slurm} (mission 3) est exécuté par le runner auto-hébergé du
-nœud de connexion, qui interroge GitHub en HTTPS sans ouvrir de port entrant. Sous chaque job
-figure la condition qui le crée ; les flèches pleines sont les dépendances \texttt{needs}.}
+runners de GitHub ; \texttt{test\_slurm} (mission 3) est exécuté par le runner auto-hébergé de
+notre poste, qui interroge GitHub en HTTPS et pilote ROMEO par SSH. Sous chaque job figure la
+condition qui le crée ; les flèches pleines entre jobs sont les dépendances \texttt{needs}.}
 \label{fig:infra}
 \commentaire
 La figure~\ref{fig:infra} montre la séparation des rôles : les runners de GitHub compilent et
-testent dans un conteneur, le runner \code{hpc-login} ne fait qu'orchestrer, et le calcul a lieu
-sur les nœuds alloués par Slurm. Le répertoire \fic{/shared} rend visibles depuis les deux nœuds
-l'installation de Spack, le binaire compilé par le job et les sorties des jobs Slurm.
+testent dans un conteneur ; le runner de notre poste ne fait qu'orchestrer, en copiant le dépôt
+sur ROMEO puis en y lançant la compilation et la soumission par SSH ; le calcul a lieu sur les
+nœuds alloués par Slurm. Le répertoire personnel, partagé entre le nœud de connexion et les nœuds
+de calcul, porte le binaire compilé et les sorties des jobs.
 \end{figtexte}
 
 Pour pouvoir casser les choses librement (faire échouer un test, saturer la file, tuer un
-nœud), chaque mission a d'abord été reproduite sur un poste Linux, avec un mini-cluster Slurm
-complet, puis rejouée sur GitHub et sur les VM. Les preuves sont collectées par des scripts :
-\fic{scripts/github_evidence.py} pilote GitHub avec la CLI \code{gh}, \fic{cluster/evidence.sh}
-rejoue les scénarios sur le cluster. Chaque commande, sa sortie et son code retour sont écrits
+nœud), ce qu'un centre de production ne permet pas, chaque mission a d'abord été reproduite sur
+un poste Linux, avec un mini-cluster Slurm complet dont nous étions administrateurs, puis rejouée
+sur GitHub et sur ROMEO. Les preuves sont collectées par des scripts :
+\fic{scripts/github_evidence.py} pilote GitHub avec la CLI \code{gh}, \fic{romeo/romeo.sh} rejoue
+les scénarios sur ROMEO par SSH. Chaque commande, sa sortie et son code retour sont écrits
 dans \fic{logs/}, et les listings de ce document incluent ces fichiers tels quels.
 
 % =============================================================================
@@ -296,7 +306,7 @@ test MPI affiche \code{4 ranks on 1 host(s)}.
 Localement, \code{mpirun} lancé en root sur 2 cœurs refuse deux fois de démarrer avant de
 réussir avec les deux options demandées par le sujet (listing~\ref{lst:m1-run}).
 \fi
-\preuveou[label=lst:m1-run]{logs/github/m1-main.txt}{Run du workflow sur \texttt{main}}
+\preuveou[label=lst:m1-run]{logs/extraits/github-m1-main.txt}{Run du workflow sur \texttt{main}}
   [label=lst:m1-run]{logs/extraits/m1-mpirun.txt}{\texttt{mpirun} en root sur 2 cœurs, exécution locale}
 
 \begin{figtexte}
@@ -333,8 +343,8 @@ statique et la compilation, dans un seul run.
 
 \subsubsection{Quelle différence entre mpirun dans le conteneur CI et une exécution sur le cluster ?}
 
-Dans le conteneur, le test affiche \code{4 ranks on 1 host(s)} ; sur le cluster, les mêmes
-quatre rangs se répartissent sur deux nœuds (section~\ref{sec:m3-preuves}). La
+Dans le conteneur, le test affiche \code{4 ranks on 1 host(s)} ; sur ROMEO, huit rangs se
+répartissent sur deux nœuds (section~\ref{sec:m3-preuves}). La
 figure~\ref{fig:ci-cluster} représente ce qui sépare les deux exécutions.
 
 \begin{figtexte}
@@ -350,18 +360,18 @@ figure~\ref{fig:ci-cluster} représente ce qui sépare les deux exécutions.
     {\texttt{mpirun -np 4 -{}-oversubscribe}\\ \texttt{-{}-allow-run-as-root}, Open MPI 4.1 de Debian};
   % cluster
   \draw[vm, fill=oiVert!8] (7.3,0) rectangle (15.9,-2.6);
-  \node[anchor=north west, font=\sffamily\footnotesize\bfseries] at (7.25,-0.05) {Cluster Slurm};
-  \node[anchor=north east, text=black!60] at (15.85,-0.05) {allocation de 2 nœuds $\times$ 2 tâches};
-  \draw[vm, fill=white] (7.6,-0.6) rectangle (10.9,-1.75);
-  \node[anchor=north west, text=black!70] at (7.62,-0.62) {hpc-login};
-  \node[rang] at (8.6,-1.3) {0}; \node[rang] at (9.9,-1.3) {1};
-  \draw[vm, fill=white] (12.3,-0.6) rectangle (15.6,-1.75);
-  \node[anchor=north west, text=black!70] at (12.32,-0.62) {hpc-compute};
-  \node[rang] at (13.3,-1.3) {2}; \node[rang] at (14.6,-1.3) {3};
-  \draw[{Stealth[length=2mm]}-{Stealth[length=2mm]}, very thick, oiOrange] (10.9,-1.2) --
-    node[above, text=black] {TCP} (12.3,-1.2);
+  \node[anchor=north west, font=\sffamily\footnotesize\bfseries] at (7.35,-0.05) {ROMEO};
+  \node[anchor=north east, text=black!60] at (15.85,-0.05) {allocation Slurm de 2 nœuds $\times$ 4 tâches};
+  \draw[vm, fill=white] (7.6,-0.6) rectangle (10.95,-1.75);
+  \node[anchor=north west, text=black!70] at (7.62,-0.62) {nœud 1};
+  \foreach \i in {0,1,2,3} \node[rang] at (8.2+\i*0.72,-1.3) {\i};
+  \draw[vm, fill=white] (12.25,-0.6) rectangle (15.6,-1.75);
+  \node[anchor=north west, text=black!70] at (12.27,-0.62) {nœud 2};
+  \foreach \i in {4,5,6,7} \node[rang] at (12.85+\i*0.72-2.88,-1.3) {\i};
+  \draw[{Stealth[length=2mm]}-{Stealth[length=2mm]}, very thick, oiOrange] (10.95,-1.2) --
+    node[above, text=black] {réseau} (12.25,-1.2);
   \node[anchor=south, align=center, text=black!75] at (11.6,-2.55)
-    {\texttt{srun -{}-mpi=pmix} dans l'allocation\\ Open MPI 5 de Spack, utilisateur \texttt{ci}};
+    {\texttt{srun -{}-mpi=pmix} dans l'allocation\\ Open MPI de l'installation Spack, notre compte};
 \end{tikzpicture}
 \captionof{figure}{Le même test MPI dans le conteneur CI et sur le cluster : placement des
 rangs, communications et lanceur.}\label{fig:ci-cluster}
@@ -369,9 +379,10 @@ rangs, communications et lanceur.}\label{fig:ci-cluster}
 Dans le conteneur, les quatre rangs partagent une machine de quelques vCPU : il faut
 \code{--oversubscribe} pour lancer plus de rangs que de cœurs et \code{--allow-run-as-root} parce
 que le conteneur tourne en root. Les communications ne passent que par la mémoire partagée, et
-\code{mpirun} crée lui-même les processus, sans allocation. Sur le cluster, \code{srun} lance les
-rangs dans une allocation Slurm, sous un utilisateur sans privilèges et avec l'Open MPI de Spack,
-via PMIx ; les rangs de nœuds différents communiquent par le réseau.
+\code{mpirun} crée lui-même les processus, sans allocation. Sur ROMEO, \code{srun} lance les
+rangs dans une allocation Slurm, sous notre compte sans privilèges et avec l'Open MPI de
+l'installation Spack du centre, via PMIx ; les rangs de nœuds différents communiquent par le
+réseau d'interconnexion.
 \end{figtexte}
 
 Les deux exécutions réagissent aussi différemment aux pannes : quand un rang meurt,
@@ -379,8 +390,8 @@ Les deux exécutions réagissent aussi différemment aux pannes : quand un rang 
 une collective jusqu'au wall-time (mission~3). On en déduit que le CI valide la logique du code
 sur peu de rangs à chaque push, comme un test unitaire, tandis que seul le cluster valide
 l'intégration du code, du MPI, du lanceur et du réseau, et produit des temps qui ont un sens. Le
-binaire du conteneur, lié à l'Open MPI de Debian, n'est d'ailleurs pas réutilisé : le job du
-cluster recompile.
+binaire du conteneur, lié à l'Open MPI de Debian, n'est d'ailleurs pas réutilisé : le job de
+ROMEO recompile.
 
 \subsubsection{Pourquoi le test échoue-t-il si l'on oublie needs, alors que le build a réussi ?}
 
@@ -391,7 +402,7 @@ celui-ci n'existe pas encore, et le téléchargement échoue alors que le build 
 (figure~\ref{fig:runs}, deuxième ligne, et listing~\ref{lst:m1-needs}). \code{needs} impose l'ordre
 d'exécution et garantit que l'artefact est publié avant d'être demandé.
 
-\preuveou[label=lst:m1-needs]{logs/github/m1-sans-needs.txt}{Job \texttt{test} lancé sans \texttt{needs}}
+\preuveou[label=lst:m1-needs]{logs/extraits/github-m1-sans-needs.txt}{Job \texttt{test} lancé sans \texttt{needs}}
   [firstline=27, lastline=36, label=lst:m1-needs]{logs/m1-needs.txt}{Variantes de \texttt{needs} sur GitLab, émulateur local}
 
 Sur GitLab, l'expérience nous a obligés à nuancer : supprimer \code{needs} ne fait pas échouer le
@@ -459,9 +470,9 @@ tableau (listing~\ref{lst:m2-pr}), et le pipeline du tag \code{v0.1.0} produit u
 contenu et la somme de contrôle se vérifient (listing~\ref{lst:m2-tag}).
 \fi
 
-\preuveou[label=lst:m2-pr]{logs/github/m2-pr.txt}{Pull request avec une erreur volontaire}
+\preuveou[label=lst:m2-pr]{logs/extraits/github-m2-pr.txt}{Pull request avec une erreur volontaire}
   [label=lst:m2-pr]{logs/m2-lint.txt}{Lint d'une branche avec une erreur volontaire, exécution locale}
-\preuveou[label=lst:m2-tag]{logs/github/m2-tag.txt}{Run du tag \texttt{v0.1.0}}
+\preuveou[label=lst:m2-tag]{logs/extraits/github-m2-tag.txt}{Run du tag \texttt{v0.1.0}}
   [label=lst:m2-tag]{logs/extraits/m2-package.txt}{Pipeline du tag \texttt{v0.1.0}, émulateur local}
 
 \subsection{Questions de cadrage}
@@ -502,16 +513,17 @@ de démarrer.\ifghdemo{} Forcé depuis \code{main}, le job \code{package} échou
 protection de l'environnement \code{release} (listing~\ref{lst:m2-protection}).\fi
 \fi
 
-\IfFileExists{logs/github/m2-protection.txt}{%
-\preuve[label=lst:m2-protection]{logs/github/m2-protection.txt}{Job \texttt{package} forcé depuis \texttt{main}}}{}
+\IfFileExists{logs/extraits/github-m2-protection.txt}{%
+\preuve[label=lst:m2-protection]{logs/extraits/github-m2-protection.txt}{Job \texttt{package} forcé depuis \texttt{main}}}{}
 
 Le risque couvert est l'exfiltration par modification du pipeline. Toute personne qui peut
 pousser une branche peut aussi y modifier le fichier de pipeline : un \code{echo} du secret
 encodé en base64, ou un \code{curl} vers un serveur extérieur, contourne le masquage, qui ne
 remplace que la valeur exacte dans le log. La protection réserve le secret aux branches et tags
 protégés, où l'on ne pousse ou ne fusionne qu'après relecture. Pour la même raison, GitHub ne
-transmet aucun secret aux pull requests venant de forks, et le runner \code{hpc-login}, qui
-exécute du code sur le nœud de connexion, ne doit servir qu'à un dépôt de confiance.
+transmet aucun secret aux pull requests venant de forks, et notre runner \code{romeo-ssh}, qui
+exécute du code sur notre poste et agit sur ROMEO avec notre compte, ne doit servir qu'à un dépôt
+de confiance.
 
 \subsubsection{Pourquoi ne jamais écrire un secret dans le fichier de pipeline, même temporairement ?}
 
@@ -555,13 +567,17 @@ premier job conditionnel, et produirions l'archive de version depuis l'environne
 
 \subsection{Réalisation}
 
-Le job Slurm \fic{slurm/job_ci.sh} demande 2 nœuds de 2 tâches, adaptés aux VM
-\code{e2-standard-2}, cinq minutes et la partition \code{debug}, celle que déclare notre
-\fic{slurm.conf} (vérifiée par \code{sinfo}). Les VM n'ont pas Lmod : comme le sujet le prévoit,
-le script initialise directement l'environnement Spack du dépôt, installé dans \fic{/shared}, et
-n'utilise des modules que s'ils existent. Il lance \code{srun --mpi=pmix --kill-on-bad-exit=1}
-avec \code{EXPECTED_RANKS} égal au nombre de tâches, et se termine par \code{SUCCESS} ou
-\code{FAILED}.
+Le job Slurm \fic{slurm/job_ci.sh} demande, comme le sujet, 2 nœuds et 8 tâches (4 par nœud)
+pour cinq minutes. La partition \code{debug} n'existe pas sur ROMEO : la partition, le projet et
+le type de nœud (\code{x64cpu}) viennent des variables \code{SBATCH_PARTITION},
+\code{SBATCH_ACCOUNT} et \code{SBATCH_CONSTRAINT}, que \code{sbatch} fait passer avant les lignes
+\code{#SBATCH} ; \fic{romeo/romeo.sh check} les choisit d'après \code{sinfo} et \code{sacctmgr}.
+ROMEO n'a pas de modules : les logiciels passent par l'installation Spack partagée, accessible
+après \code{romeo_load_x64cpu_env}. Comme le sujet le prévoit en l'absence de Lmod, le script
+initialise donc lui-même l'environnement (\fic{slurm/env.sh}) : il appelle cette commande puis
+active l'environnement Spack dédié du dépôt. Il lance ensuite
+\code{srun --mpi=pmix --kill-on-bad-exit=1} avec \code{EXPECTED_RANKS} égal au nombre de tâches,
+et se termine par \code{SUCCESS} ou \code{FAILED}.
 
 Le script \fic{slurm/submit_and_poll.sh} soumet le job par \code{sbatch --parsable} et garde son
 identifiant dans \fic{.slurm_jobid}. Il interroge ensuite \code{sacct -X}, avec un repli sur
@@ -570,70 +586,83 @@ identifiant dans \fic{.slurm_jobid}. Il interroge ensuite \code{sacct -X}, avec 
 et 75 pour un échec d'infrastructure (\code{NODE_FAIL}, \code{BOOT_FAIL}, \code{PREEMPTED}, job
 remis en file ou état introuvable).
 
-Le job \code{test_slurm} (listing~\ref{lst:m3-yaml}) s'exécute sur le runner \code{hpc-login}
-après \code{test}, recompile avec le MPI de Spack, puis soumet et suit le job. Nous avons préféré
-ce runner à une soumission SSH depuis un runner partagé : il n'ouvre aucun port entrant, aucune
-clé SSH ne figure dans les secrets, et il travaille directement sur \fic{/shared}. Le délai du
-job (30~min) dépasse celui de l'étape de soumission (25~min), ce qui laisse à l'étape de
-nettoyage, exécutée même après une annulation (\code{if: always()}), le temps d'annuler le job
-Slurm ; les logs sont archivés dans tous les cas, comme avec \code{artifacts: when: always}.
+Un runner hébergé par GitHub ne peut pas atteindre ROMEO, et le sujet propose deux solutions.
+Un runner installé sur le nœud de connexion serait un service permanent sur une machine partagée,
+ce qu'un simple utilisateur ne peut pas imposer au centre. Une soumission SSH depuis un runner
+hébergé obligerait à confier à GitHub une clé privée donnant accès à notre compte. Nous
+combinons donc les deux : un runner auto-hébergé tourne sur notre poste, le temps des essais, et
+atteint ROMEO avec notre accès SSH habituel (\fic{romeo/ci_ssh.sh}). Aucune clé n'est stockée dans
+GitHub et rien ne reste en fonctionnement sur ROMEO ; en contrepartie, le nightly ne s'exécute que
+si notre poste est allumé.
 
-\preuve[language=yaml, linerange={143-161,170-176}, label=lst:m3-yaml]{.github/workflows/ci.yml}
+Le job \code{test_slurm} (listing~\ref{lst:m3-yaml}) copie le dépôt sur ROMEO, y compile avec le
+MPI de l'installation partagée, puis soumet et suit le job, le tout par SSH
+(\fic{slurm/ci_remote.sh}). Le délai du job (30~min) dépasse celui de l'étape de soumission
+(25~min) : l'étape d'annulation, exécutée même après l'annulation du run (\code{if: always()}), a
+ainsi le temps d'appeler \code{scancel}, et les sorties du job sont rapatriées et archivées dans
+tous les cas, comme avec \code{artifacts: when: always}.
+
+\preuve[language=yaml, linerange={146-147,151-153,156-158,164-178}, label=lst:m3-yaml]{.github/workflows/ci.yml}
   {Job \texttt{test\_slurm}, extrait du workflow}
 
 GitHub Actions n'a pas d'équivalent de \code{retry:}. Sur GitLab, \code{retry: when:
 runner_system_failure} relance un job quand c'est le runner qui a défailli (machine perdue,
 exécuteur en erreur), jamais quand le script a échoué ; nous y ajoutons \code{exit_codes: 75} et
-limitons à une relance. Notre étape GitHub reproduit cette logique : elle ne soumet une seconde
+limitons à une relance. Notre script distant reproduit cette logique : il ne soumet une seconde
 fois que si le premier essai rend le code 75.
 
 \subsection{Preuves d'exécution}\label{sec:m3-preuves}
 
-\ifghhpc
-Lancé depuis GitHub (listing~\ref{lst:m3-run}), \code{test_slurm} compile avec l'Open MPI de
-Spack, soumet le job et le suit jusqu'à \code{COMPLETED} : les quatre rangs se répartissent sur
-\code{hpc-login} et \code{hpc-compute}, et l'étape de nettoyage constate qu'il n'y a rien à
-annuler.
-\preuve[label=lst:m3-run]{logs/extraits/github-m3-ci-polling.txt}{Job \texttt{test\_slurm} exécuté par le runner
-\texttt{hpc-login}}
-\else
-Le cas nominal est donné par le listing~\ref{lst:m3-run} : quatre rangs sur deux nœuds,
+\IfFileExists{logs/github/m3-ci-polling.txt}{%
+Lancé depuis GitHub (listing~\ref{lst:m3-run}), \code{test_slurm} copie le dépôt sur ROMEO,
+compile avec l'Open MPI de l'installation partagée, soumet le job et le suit jusqu'à
+\code{COMPLETED} : les huit rangs se répartissent sur deux nœuds, et l'étape d'annulation constate
+qu'il n'y a rien à annuler.
+\preuve[label=lst:m3-run]{logs/extraits/github-m3-ci-polling.txt}{Job \texttt{test\_slurm}
+exécuté depuis GitHub sur ROMEO}}{%
+Le cas nominal est donné par le listing~\ref{lst:m3-run} : huit rangs sur deux nœuds,
 \code{ExitCode 0:0}, ligne \code{SUCCESS}.
-\preuveou[label=lst:m3-run]{logs/extraits/cluster-m3-succes.txt}{Soumission et suivi sur le cluster de deux VM}
-  [label=lst:m3-run]{logs/m3-poll-4-success.txt}{Soumission et suivi sur le mini-cluster local}
-\fi
+\preuveou[label=lst:m3-run]{logs/extraits/romeo-m3-succes.txt}{Soumission et suivi sur ROMEO}
+  [label=lst:m3-run]{logs/m3-poll-4-success.txt}{Soumission et suivi sur le mini-cluster local}}
 
 \begin{figtexte}
 \begin{minipage}{\linewidth}\setlength{\parindent}{1.5em}\noindent\hspace*{1.5em}%
-Pour éprouver le pipeline, \fic{cluster/evidence.sh} rejoue ensuite les situations qu'un nightly
-doit savoir traiter ; la figure~\ref{fig:chrono} les place sur une même échelle de temps.
+Pour éprouver le pipeline, \ifromeo\fic{romeo/evidence.sh} rejoue ensuite sur ROMEO, sous
+notre compte,\else nous avons ensuite rejoué sur le mini-cluster local\fi{} les situations qu'un
+nightly doit savoir traiter ; la figure~\ref{fig:chrono} les place sur une même échelle de temps.
 \end{minipage}\par\vspace{8pt}
 \input{logs/figures/chrono.tex}
 \commentaire
 Un rang qui plante donne \code{FAILED} en quelques secondes, parce que
 \code{--kill-on-bad-exit} arrête les autres rangs ; un rang bloqué retient au contraire les autres
-dans la collective, et seul le wall-time de Slurm y met fin (\code{TIMEOUT}). Derrière un job qui
-occupe les quatre CPU, le job du CI attend en \code{PENDING}, avec la raison \code{Resources},
-puis réussit. Dans le scénario \enquote{attente, timeout CI}, le suivi est coupé au bout de
-40~s alors que le job attend encore : sans le \code{scancel} de l'étape de nettoyage, il
-resterait en file. Enfin, quand \code{slurmd} est tué sur \code{hpc-compute}, Slurm déclare le
-nœud hors service, passe le job en \code{NODE_FAIL} et le remet aussitôt en file
-(listing~\ref{lst:m3-nodefail}) ; le script rend 75 et le job remis en file est annulé.
+dans la collective, et seul le wall-time de Slurm y met fin (\code{TIMEOUT}).
+\ifromeo Un job qui en attend un autre reste en \code{PENDING}, avec la raison
+\code{Dependency}, puis s'exécute.\else Derrière un job qui occupe tout le cluster, le job du CI
+attend en \code{PENDING}, avec la raison \code{Resources}, puis réussit.\fi{} Dans le scénario
+\enquote{attente, timeout CI}, le suivi est coupé alors que le job attend encore : sans le
+\code{scancel} de l'étape de nettoyage, il resterait en file.
+\ifromeo Enfin, un centre de production ne nous laisse pas provoquer une panne de nœud : nous
+remettons le job en file avec \code{scontrol requeue}, ce que Slurm fait lui-même après une panne
+(listing~\ref{lst:m3-panne}). Le script rend 75 et le job remis en file est annulé ; la vraie
+panne, \code{slurmd} tué, a été provoquée sur le mini-cluster local
+(\fic{logs/m3-nodefail.txt}).\else Enfin, quand le \code{slurmd} d'un nœud est tué, Slurm passe le
+job en \code{NODE_FAIL} et le remet aussitôt en file (listing~\ref{lst:m3-panne}) ; le script rend
+75 et le job remis en file est annulé.\fi
 \end{figtexte}
 
-\preuveou[label=lst:m3-nodefail]{logs/extraits/cluster-m3-nodefail.txt}{Panne d'un nœud pendant le job (extrait)}
-  [label=lst:m3-nodefail]{logs/m3-nodefail.txt}{Panne d'un nœud pendant le job, mini-cluster local}
+\preuveou[label=lst:m3-panne]{logs/extraits/romeo-m3-requeue.txt}{Remise en file pendant le job (extrait)}
+  [label=lst:m3-panne]{logs/m3-nodefail.txt}{Panne d'un nœud pendant le job, mini-cluster local}
 
 \IfFileExists{logs/github/m3-ci-annulation.txt}{%
 Le même nettoyage a été vérifié depuis GitHub : un run annulé pendant que le job attendait en
-file laisse l'étape de nettoyage annuler le job Slurm (listing~\ref{lst:m3-cancel}).
-\preuve[label=lst:m3-cancel]{logs/extraits/github-m3-ci-annulation.txt}{Run annulé pendant l'attente du job
-Slurm}}{}
+file laisse l'étape d'annulation supprimer le job Slurm (listing~\ref{lst:m3-cancel}).
+\preuve[label=lst:m3-cancel]{logs/extraits/github-m3-ci-annulation.txt}{Run annulé pendant l'attente
+du job Slurm}}{}
 
 \subsection{Polling ou sbatch -{}-wait ?}
 
 \code{sbatch --wait} tient en une ligne et propage le code retour du job
-(\ifcluster\fic{logs/cluster/m3-wait.txt}\else\fic{logs/extraits/m3-wait-ok-fail.txt}\fi), mais
+(\ifromeo\fic{logs/romeo/m3-wait.txt}\else\fic{logs/extraits/m3-wait-ok-fail.txt}\fi), mais
 n'affiche rien pendant l'attente et, si le CI le coupe, laisse le job en file à moins d'avoir
 enregistré son identifiant. Le polling coûte un script et une requête \code{sacct} par
 intervalle, mais montre l'état et la raison d'attente, classe les échecs (code 1 ou 75) et garde
@@ -662,23 +691,23 @@ une attente sans fin (figure~\ref{fig:chrono}).
 \subsubsection{Le job Slurm reste PENDING vingt minutes : que se passe-t-il côté CI, et comment le rendre observable ?}
 
 Côté CI, le job est \enquote{en cours} : le runner exécute la boucle de suivi et reste occupé,
-si bien que les autres jobs destinés à \code{hpc-login} attendent, et la suite du run, ainsi
-qu'une pull request si le job est requis, reste bloquée. Avec une soumission SSH depuis un runner
-partagé, ces vingt minutes seraient en outre décomptées. Si l'attente dépasse le
-\code{timeout}, le job CI échoue et le job Slurm reste en file s'il n'est pas annulé. Avec
-\code{sbatch --wait}, le log reste vide pendant toute l'attente : impossible de distinguer une
-file pleine d'un blocage.
+si bien que les autres jobs destinés au cluster attendent, et la suite du run, ainsi qu'une pull
+request si le job est requis, reste bloquée. La connexion SSH vers ROMEO reste ouverte pendant
+toute l'attente ; avec un runner hébergé, ces vingt minutes seraient en outre décomptées. Si
+l'attente dépasse le \code{timeout}, le job CI échoue et le job Slurm reste en file s'il n'est
+pas annulé. Avec \code{sbatch --wait}, le log reste vide pendant toute l'attente : impossible de
+distinguer une file pleine d'un blocage.
 
 Pour le rendre observable, notre script affiche à chaque tour l'heure, le temps écoulé, l'état
-et la raison donnée par Slurm (\code{Resources}, \code{Priority}, \code{BeginTime},
-\code{ReqNodeNotAvail}...), puis l'heure de démarrage estimée par \code{squeue --start}, qui vaut
+et la raison donnée par Slurm (\code{Resources}, \code{Priority}, \code{Dependency},
+\code{BeginTime}...), puis l'heure de démarrage estimée par \code{squeue --start}, qui vaut
 \code{N/A} tant que l'ordonnanceur n'a rien calculé (listing~\ref{lst:m3-pending}). On peut aller
-plus loin avec \code{sbatch --test-only} avant de soumettre, une partition réservée au CI, ou une
-alerte au-delà d'un seuil d'attente.
+plus loin avec \code{sbatch --test-only} avant de soumettre, une partition réservée aux tests, ou
+une alerte au-delà d'un seuil d'attente.
 
-\preuveou[lastline=14, label=lst:m3-pending]{logs/extraits/cluster-m3-file-pleine.txt}{Job du CI en attente derrière un job qui occupe
-le cluster (début)}[label=lst:m3-pending]{logs/m3-pending.txt}{Job du CI en attente derrière un job qui occupe le
-cluster, mini-cluster local}
+\preuveou[lastline=14, label=lst:m3-pending]{logs/extraits/romeo-m3-dependance.txt}{Job du CI en
+attente d'un autre job sur ROMEO (début)}[label=lst:m3-pending]{logs/m3-pending.txt}{Job du CI en
+attente derrière un job qui occupe le cluster, mini-cluster local}
 
 \subsubsection{Le nightly échoue à 2 h du matin : quelles questions se poser avant de relancer ?}
 
@@ -689,24 +718,23 @@ et notre script le résume par son code retour. La deuxième porte sur les logs 
 \fic{ci-JOBID.out}, \fic{sacct-JOBID.txt} et le log du job CI sont archivés même en cas d'échec ;
 s'ils manquent, c'est l'observabilité qu'il faut réparer avant de relancer. La troisième porte
 sur ce qui a changé depuis le dernier nightly réussi : commits fusionnés, \fic{spack.lock},
-maintenance du cluster, quotas ou crédits GCP. Si rien n'a changé dans le dépôt,
-l'infrastructure est la première suspecte.
+maintenance ou mise à jour du centre, heures du projet épuisées. Si rien n'a changé dans le
+dépôt, l'infrastructure est la première suspecte.
 
 Un échec de code est déterministe et lié à un commit : test faux, \code{FAILED} avec un
 \code{ExitCode} non nul, plantage ou blocage dans notre code, comme les scénarios \enquote{un
 rang plante} et \enquote{un rang bloqué}. Le relancer ne sert à rien et masquerait un test
 instable : il faut corriger. Un échec d'infrastructure est transitoire et indépendant du code :
-runner perdu, nœud en panne comme dans le scénario \code{NODE_FAIL}, VM impossible à créer faute
-de quota, préemption, NFS indisponible. Une relance automatique, limitée à une, est alors
-légitime, mais seulement après avoir annulé le job que Slurm a déjà remis en file, sinon le test
-tourne deux fois.
+runner perdu, poste éteint, connexion SSH coupée, nœud en panne, préemption, maintenance. Une
+relance automatique, limitée à une, est alors légitime, mais seulement après avoir annulé le job
+que Slurm a déjà remis en file, sinon le test tourne deux fois.
 
 \subsection{Erreurs rencontrées et résolution}\label{sec:m3-erreurs}
 
 Notre première soumission sur deux nœuds a mis plus de cinq minutes à échouer : deux rangs ont
-planté dans le transport mémoire partagée d'Open MPI et les deux autres sont restés bloqués
-jusqu'au wall-time. Avec \code{--kill-on-bad-exit=1}, le même échec est détecté en une seconde.
-Le plantage venait du mini-cluster local, dont les deux nœuds Slurm étaient la même machine.
+planté dans le transport mémoire partagée d'Open MPI et les autres sont restés bloqués jusqu'au
+wall-time. Avec \code{--kill-on-bad-exit=1}, le même échec est détecté en une seconde. Le plantage
+venait du mini-cluster local, dont les deux nœuds Slurm étaient la même machine.
 
 Sans \code{--mpi=pmix}, Open MPI refuse de démarrer sous \code{srun}. Avec d'autres
 implémentations, les rangs peuvent démarrer en \enquote{singletons} de taille~1 et réussir à
@@ -720,17 +748,18 @@ interroge désormais le contrôleur avec \code{scontrol show job} et rend 75 apr
 état.
 
 Enfin, avec un intervalle de suivi de 20~s, le script n'a pas vu l'état \code{NODE_FAIL} : Slurm
-avait déjà remis le job en file, et le suivi l'aurait attendu jusqu'au \code{timeout}. Un job
-\code{PENDING} dont le compteur \code{Restarts} est positif est maintenant classé comme un échec
-d'infrastructure (\fic{logs/m3-requeue.txt}).
+avait déjà remis le job en file, et le suivi l'aurait attendu jusqu'au \code{timeout}. Un job dont
+le compteur \code{Restarts} est positif est maintenant classé comme un échec d'infrastructure
+(\fic{logs/m3-requeue.txt}).
 
 \subsection{Bilan}
 
 La soumission, le suivi, le verdict classé (0, 1 ou 75) et l'annulation des jobs orphelins
-fonctionnent \ifghhpc sur un vrai cluster de deux nœuds, depuis GitHub,\else sur le mini-cluster
-local,\fi{} y compris en cas de file saturée, de blocage ou de panne de nœud. Si la base de comptabilité reste arrêtée plus de cinq
-minutes après la fin du job, le contrôleur l'a oublié et le code retour est perdu. Nous
-testerions les cas d'échec avant le cas nominal, car chacun a révélé un défaut du script.
+fonctionnent \ifghhpc sur ROMEO, depuis GitHub,\else sur le mini-cluster local\ifromeo{} et sur
+ROMEO\fi,\fi{} y compris en cas de blocage, d'attente ou de remise en file. Le CI dépend cependant
+de notre poste, allumé et connecté, et une vraie panne de nœud n'a pu être observée que sur le
+mini-cluster local. Nous demanderions au centre un accès prévu pour l'intégration continue
+(compte de service ou passerelle) plutôt que de la faire reposer sur un poste personnel.
 
 % =============================================================================
 \section{Mission 4 : Spack, l'environnement comme code}
@@ -738,13 +767,14 @@ testerions les cas d'échec avant le cas nominal, car chacun a révélé un déf
 
 \subsection{Réalisation et preuves}
 
-Spack est cloné au tag \code{v1.2.2} plutôt que sur la branche \code{develop}, car sa version
-fait partie de ce qu'il faut figer ; sur le cluster, il est installé dans \fic{/shared}.
-\code{spack compiler find} détecte le GCC 13.3 du système, utilisé comme paquet externe : Spack ne
-le recompile pas. L'environnement \fic{spack/} demande \code{openmpi@5 schedulers=slurm %gcc} et
+Nous avons d'abord construit l'environnement sur notre poste. Spack y est cloné au tag
+\code{v1.2.2} plutôt que sur la branche \code{develop}, car sa version fait partie de ce qu'il faut
+figer, et \code{spack compiler find} détecte le GCC 13.3 du système, utilisé comme paquet
+externe : Spack ne le recompile pas. L'environnement \fic{spack/} demande \code{openmpi@5 schedulers=slurm %gcc} et
 \code{cmake %gcc} (listing~\ref{lst:m4-yaml}). Trois réglages se sont imposés à l'expérience : une
-cible générique \code{x86_64_v3}, car \code{spack arch} donne \code{icelake} sur notre poste alors
-que les VM \code{e2} peuvent recevoir un processeur Intel ou AMD ; le Slurm du système déclaré
+cible générique \code{x86_64_v3}, car \code{spack arch} donne \code{icelake} sur notre poste et des
+binaires optimisés pour ce processeur ne tourneraient pas sur des machines plus anciennes ; le
+Slurm du système déclaré
 externe et non constructible, faute de quoi Spack en compile un complet ; et le dépôt de
 recettes fixé à un commit, puisque les recettes évoluent indépendamment de Spack depuis la
 version~1.0.
@@ -792,18 +822,19 @@ sont commités dans \fic{spack/} ; la vue et l'état local (\fic{spack/.spack-en
 par Git.
 \end{figtexte}
 
-\ifcluster
-Sur \code{hpc-login}, \code{spack -e spack/ concretize} répond qu'il n'y a rien à concrétiser :
-le verrou commité est utilisé tel quel. \code{spack install} construit alors les 46 paquets en
-\spackinstalltime{}, et les hash installés sont identiques à ceux du verrou, produit sur une
-autre machine (listing~\ref{lst:m4-hash}).
-\preuve[label=lst:m4-hash]{logs/cluster/m4-hashes.txt}{Hash du verrou et des paquets installés sur le
-cluster}
+Sur ROMEO, une installation Spack partagée existe déjà, et le sujet demande d'y travailler dans
+un environnement dédié. Le nôtre, \fic{spack/romeo}, demande seulement \code{openmpi} et
+\code{cmake}, sans version ni compilateur imposés, et active la réutilisation des paquets déjà
+installés (\code{reuse: true}) : la concrétisation choisit alors les versions compilées par le
+centre.
+\ifromeo
+Elle retient \spackreuse{} specs déjà installées et \spackbuild{} à construire, et l'installation
+prend \spackinstalltime{} (listing~\ref{lst:m4-romeo}), quand notre poste devait en compiler 46.
+Le verrou \fic{spack/romeo/spack.lock}, produit sur ROMEO, est commité à côté du premier.
+\preuve[label=lst:m4-romeo]{logs/romeo/m4-romeo-concretize.txt}{Concrétisation de l'environnement
+dédié sur ROMEO}
 \else
-Le début de la concrétisation (listing~\ref{lst:m4-hash}) montre les specs à construire
-(\code{-}) et les externes (\code{[e]}).
-\preuve[lastline=12, label=lst:m4-hash]{logs/m4-concretize.txt}{Début de la concrétisation, poste
-local}
+Son verrou est produit sur ROMEO par \fic{romeo/evidence.sh}, puis commité à côté du premier.
 \fi
 
 \subsection{Questions de cadrage}
@@ -832,29 +863,32 @@ et paquets externes disponibles ; micro-architecture de la machine (\code{icelak
 l'on ne fixe pas la cible) ; réglages du solveur. Deux machines, ou deux dates, donnent deux
 environnements différents. \fic{spack.lock} fige au contraire le graphe complet : versions,
 variants, compilateurs, cibles, arêtes et hash. \code{spack install} réinstalle exactement ce
-graphe sans relancer le solveur\ifcluster, comme le montrent les hash identiques obtenus sur le
-cluster\fi, et le hash identifie la configuration : même hash, même build, même entrée de
-buildcache.
+graphe sans relancer le solveur, et le hash identifie la configuration : même hash, même build,
+même entrée de buildcache.
 
 Le verrou a toutefois des limites. Il suppose que la version de Spack et les recettes restent
 disponibles (d'où le tag \code{v1.2.2} et le commit de recettes fixé), et que les sources restent
 téléchargeables. Il contient surtout des éléments propres à la machine, l'OS et les externes :
 Spack fait confiance au GCC 13.3 et au Slurm 23.11.4 déclarés dans \fic{/usr} sans les vérifier.
-Le verrou n'est donc reproductible que sur des machines de même image, ce qui est le cas des
-deux VM, mais pas sur n'importe quel poste.
+Le verrou n'est donc reproductible que sur des machines de même image : celui de notre poste,
+produit sous Ubuntu 24.04 avec GCC 13.3, n'a pas de sens sur ROMEO, qui fonctionne sous RHEL 9
+avec d'autres compilateurs et une autre micro-architecture ; d'où un second verrou, produit sur
+ROMEO.
 
 \subsubsection{Quel est l'intérêt du buildcache pour un pipeline qui installe l'environnement à chaque exécution ?}
 
 Un job CI part d'un environnement vierge : \code{spack install} y recompilerait les 46 paquets
-(Open MPI, PMIx, PRRTE, CMake, autotools, Perl...) à chaque run, \ifcluster soit
-\spackinstalltime{} sur nos 2 vCPU,\else soit près d'une heure sur 2 vCPU,\fi{} bien au-delà de
-notre \code{timeout}. Un buildcache stocke les binaires indexés par leur hash : l'installation
+(Open MPI, PMIx, PRRTE, CMake, autotools, Perl...) à chaque run, soit des dizaines de minutes,
+bien au-delà de notre \code{timeout}. Un buildcache stocke les binaires indexés par leur hash : l'installation
 devient un téléchargement suivi d'une relocalisation, en quelques minutes. Comme les hash du
 verrou sont stables, le cache est atteint exactement, et seuls les paquets modifiés se
 recompilent. Le pipeline de \code{main} peut publier les nouveaux binaires
 (\code{spack buildcache push}), signés par une clé GPG gardée en secret protégé, dans un registre
-OCI comme \code{ghcr.io} ; le CI et le cluster installent alors les mêmes binaires. Par défaut,
-Spack ne connaît qu'un miroir de sources : le buildcache se configure explicitement.
+OCI comme \code{ghcr.io} ; le CI et le cluster installent alors les mêmes binaires.
+L'installation partagée de ROMEO joue ce rôle pour les utilisateurs du centre : notre
+environnement dédié \ifromeo s'y installe en \spackinstalltime{} en réutilisant \spackreuse{} specs
+déjà compilées.\else y réutilise les paquets déjà compilés au lieu de les reconstruire.\fi{} Par
+défaut, Spack ne connaît qu'un miroir de sources : un buildcache se configure explicitement.
 
 \subsection{Erreurs rencontrées et résolution}
 
@@ -866,16 +900,18 @@ Slurm comme dépendance : déclaré externe et non constructible, celui du syst�
 commentaires de \fic{spack.yaml}, réécrit à la main.
 
 Concrétisé sans précaution, l'environnement visait la micro-architecture \code{icelake} de notre
-poste et n'aurait pas tourné sur toutes les VM \code{e2} ; \code{target: [x86_64_v3]} règle la
-question pour tous les paquets.
+poste et n'aurait pas tourné sur des processeurs plus anciens ; \code{target: [x86_64_v3]} règle
+la question pour tous les paquets. Enfin, l'installation n'a pas pu être lancée sur notre poste,
+dont le réseau bloque les miroirs de sources : c'est sur ROMEO que l'environnement est installé.
 
 \subsection{Bilan}
 
-L'environnement est concrétisé avec une cible portable et Slurm externe, versionné dans Git,
-\ifcluster et réinstallé sur le cluster avec des hash identiques au verrou.\else et la spec de
-HDF5 est vérifiée.\fi{} Il n'y a pas encore de buildcache : chaque installation repart des
-sources. Nous mettrions le buildcache en place avant d'appeler \code{spack install} depuis le CI,
-et concrétiserions directement sur l'image des nœuds cibles.
+L'environnement est concrétisé sur notre poste, avec une cible portable et Slurm externe, et sur
+ROMEO, où il réutilise l'installation partagée\ifromeo{} (\spackreuse{} specs réutilisées,
+\spackbuild{} à construire)\fi ; les deux verrous sont versionnés. Le premier n'a pas pu être
+installé faute d'accès aux sources, et aucun buildcache n'est en place pour le CI. Nous
+concrétiserions directement sur la machine cible et mettrions un buildcache en place avant
+d'appeler \code{spack install} depuis le CI.
 
 % =============================================================================
 \section{Conclusion et auto-diagnostic}
@@ -900,9 +936,9 @@ provoquer volontairement chaque échec avant de faire confiance au cas nominal.
 \subsection{Points à retravailler}
 
 Trois points restent à approfondir : le buildcache de Spack en pratique (publication,
-signature, utilisation depuis le CI), la génération de modules Lmod à partir de Spack pour que
-\fic{job_ci.sh} charge un module plutôt qu'un environnement, et la sécurisation d'un runner
-auto-hébergé dans la durée (runner éphémère, conteneur Apptainer, dépôt de confiance).
+signature, utilisation depuis le CI), la mesure de performances dans le pipeline, avec un
+passage à l'échelle sur davantage de nœuds de ROMEO, et un accès pérenne du CI à ROMEO,
+qui ne dépende pas de notre poste (compte de service ou passerelle fournie par le centre).
 
 \subsection{Utilisation dans un projet d'imagerie médicale}
 
@@ -935,6 +971,7 @@ habilité, par un runner réservé au dépôt du projet.
 \item GitLab, \emph{CI/CD YAML syntax reference} (\texttt{needs}, \texttt{rules}, \texttt{retry}, \texttt{timeout}), \url{https://docs.gitlab.com/ci/yaml/}.
 \item GitLab, \emph{Deprecated keywords} (\texttt{only}, \texttt{except}), \url{https://docs.gitlab.com/ci/yaml/deprecated_keywords/}.
 \item GitLab, \emph{CI/CD variables} (variables masquées et protégées), \url{https://docs.gitlab.com/ci/variables/}.
+\item Centre de calcul régional ROMEO, \emph{Documentation ROMEO 2025} (charger ses logiciels, installer un logiciel avec Spack), \url{https://romeo.univ-reims.fr/documentation/ressources/romeo_2025/}.
 \item SchedMD, \emph{Slurm documentation} (\texttt{sbatch}, \texttt{sacct}, \texttt{slurm.conf}), \url{https://slurm.schedmd.com/}.
 \item Spack, documentation de la version 1.x, \url{https://spack.readthedocs.io/}.
 \end{enumerate}
